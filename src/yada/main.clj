@@ -1,32 +1,43 @@
 (ns yada.main
-  (:gen-class))
+  (:gen-class)
+  (:require [random]
+            [priority-queue]
+            [yada.element :as element]
+            [yada.mesh :as mesh]))
 
 (defn parse-args [args]
   {:angle-constraint 20.0
    :input-prefix     "inputs/633.2"
    :num-thread       1})
 
-(defn initialize-work [heap mesh]
-  0) ; TODO
+(defn initialize-work [mesh]
+  (random/set-seed! 0)
+  (mesh/shuffle-bad mesh)
+  (loop [queue (priority-queue/create element/compare)]
+    (let [element (mesh/get-bad mesh)]
+      (if (nil? element)
+        queue
+        (do
+          (element/set-is-referenced? element true)
+          (recur
+            (priority-queue/add queue element)))))))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
   (let [params
           (parse-args args)
         mesh
-          ; TODO: (mesh/alloc)
-          nil
+          (mesh/alloc)
         _ (println "Angle constraint =" (:angle-constraint params))
         _ (println "Reading input...")
         init-num-element
           ; TODO: (mesh/read mesh (:input-prefix params))
           0
         _ (println "done.")
-        work-heap
-          ; TODO: (heap/alloc 1 element/heap-compare)
-          nil
+        work-queue ; This is a heap in the C version
+          (initialize-work mesh)
         init-num-bad-element
-          (initialize-work work-heap mesh)
+          (count work-queue)
         _ (println "Initial number of mesh elements =" init-num-element)
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
