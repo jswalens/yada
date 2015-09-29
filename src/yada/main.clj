@@ -26,13 +26,10 @@
   "Main function. `args` should be a list of command line arguments."
   (let [params
           (parse-args args)
-        mesh
-          (mesh/alloc)
         _ (println "Angle constraint =" (:angle-constraint params))
         _ (println "Reading input...")
-        init-num-element
-          ; TODO: (mesh/read mesh (:input-prefix params))
-          0
+        [mesh init-num-element]
+          (mesh/read (:input-prefix params))
         _ (println "done.")
         work-queue ; This is a heap in the C version
           (initialize-work mesh)

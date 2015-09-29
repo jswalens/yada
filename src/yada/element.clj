@@ -60,12 +60,18 @@
     {:circum-center circum-center
      :circum-radius (coordinate/distance circum-center (first coordinates))}))
 
+(defn- create-edge [fst snd]
+  "Create edge from coordinate `fst` to coordinate `snd`. Makes sure that
+  the 'smallest' coordinate is put first, to make comparisons possible."
+  (if (< (coordinate/compare fst snd) 0)
+    {:first fst :second snd}   ; fst < snd
+    {:first snd :second fst})) ; snd < fst
+    ; note: fst == snd should be impossible, that would be an edge to itself.
+
 (defn- get-edge-midpoint-radius [coordinates i]
   (let [fst      (nth coordinates i)
         snd      (nth coordinates (mod (inc i) (count coordinates)))
-        edge     (if (< (coordinate/compare fst snd) 0)
-                   {:first fst :second snd}
-                   {:first snd :second fst})
+        edge     (create-edge fst snd)
         midpoint {:x (/ (+ (:x fst) (:x snd)) 2.0)
                   :y (/ (+ (:y fst) (:y snd)) 2.0)}
         radius   (coordinate/distance fst midpoint)]
@@ -99,20 +105,26 @@
           (calculate-circumcircle coordinates)
         {:keys [edges midpoints radii]}
           (get-edges-midpoints-radii coordinates)]
-    {:coordinates     coordinates
-     :circum-center   circum-center
-     :circum-radius   circum-radius
-     :min-angle       min-angle
-     :edges           edges     ; 1 edge if 2 coordinates; 3 edges if 3 coords
-     :midpoints       midpoints ; midpoint of each edge
-     :radii           radii     ; half of edge length
-     :encroached-edge encroached-edge ; index of the encroached edge in :edges,
-                      ; nil if there is no encroached edge. The encroached edge
-                      ; is the one opposite the obtuse angle of the triangle.
-     :skinny?         skinny?
-     :neighbors       [] ; TODO: use element/list-compare to order
-     :garbage?        false
-     :referenced?     false}))
+    (ref
+      {:coordinates     coordinates
+       :circum-center   circum-center
+       :circum-radius   circum-radius
+       :min-angle       min-angle
+       :edges           edges     ; 1 edge if 2 coordinates; 3 edges if 3 coords
+       :midpoints       midpoints ; midpoint of each edge
+       :radii           radii     ; half of edge length
+       :encroached-edge encroached-edge ; index of the encroached edge in :edges,
+                        ; nil if there is no encroached edge. The encroached edge
+                        ; is the one opposite the obtuse angle of the triangle.
+       :skinny?         skinny?
+       :neighbors       [] ; list of refs to neighboring elements; TODO: use
+                        ; element/list-compare to order
+       :garbage?        false
+       :referenced?     false})))
+
+(defn get-edge [element i]
+  "Returns i'th edge of `element`."
+  (nth (:edges @element) i))
 
 (defn priority-queue-compare [a b]
   "Compare elements `a` and `b`, for sorting in a priority queue."
@@ -125,14 +137,25 @@
       0)))
 
 (defn- is-encroached? [element]
-  (some? (:encroached-edge element)))
+  (some? (:encroached-edge @element)))
+
+(defn clear-encroached [element]
+  (dosync
+    (alter element assoc :encroached-edge nil)))
 
 (defn is-skinny? [element]
-  (:skinny? element))
+  (:skinny? @element))
 
 (defn is-bad? [element]
   "Does `element` need to be refined?"
-  (or (is-encroached? element) (is-skinny? element)))
+  (dosync
+    (or (is-encroached? @element) (is-skinny? @element))))
 
 (defn set-is-referenced? [element status]
-  (= (:referenced? element) status))
+  (= (:referenced? @element) status))
+
+(defn add-neighbor [element neighbor]
+  "Note: when calling (add-neighbor a b), don't forget to call
+  (add-neighbor b a) as well."
+  (dosync
+    (alter element update-in [:neighbors] conj neighbor)))
