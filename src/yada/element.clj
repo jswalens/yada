@@ -158,7 +158,7 @@
 (defn is-bad? [element]
   "Does `element` need to be refined?"
   (dosync
-    (or (is-encroached? @element) (is-skinny? @element))))
+    (or (is-encroached? element) (is-skinny? element))))
 
 (defn set-is-referenced? [element status]
   (= (:referenced? @element) status))
