@@ -13,7 +13,7 @@
 (defn initialize-work [mesh]
   (random/set-seed! 0)
   (mesh/shuffle-bad mesh)
-  (loop [queue (priority-queue/create element/compare)]
+  (loop [queue (priority-queue/create element/priority-queue-compare)]
     (let [element (mesh/get-bad mesh)]
       (if (nil? element)
         queue
