@@ -2,9 +2,18 @@
   (:require [yada.options :as options]
             [yada.coordinate :as coordinate]))
 
+(defn- min-index [cmp lst]
+  "Returns the index of the smallest element in `lst`, using comparison function
+  `cmp`."
+  (->> lst
+    (map-indexed (fn [i v] [i v]))
+    (sort (fn [[i1 v1] [i2 v2]] (cmp v1 v2)))
+    (first)   ; get first [i v] pair
+    (first))) ; get i of that pair
+
 (defn- minimize-coordinates [coordinates]
   "Re-order `coordinates` so that the first element is the smallest coordinate."
-  (let [min-position (first (sort-by coordinate/compare coordinates))]
+  (let [min-position (min-index coordinate/compare coordinates)]
     ; Rotate the list of coordinates so that min-position is first
     (concat (drop min-position coordinates) (take min-position coordinates))))
 
