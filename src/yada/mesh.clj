@@ -63,6 +63,10 @@
         (alter mesh update-in [:init-bad-queue] conj element))
       edge-map)))
 
+(defn- comment? [line]
+  "Line is a comment if it starts with a #"
+  (.startsWith line "#"))
+
 (defn- split [line]
   "Split `line` on spaces."
   (str/split line #" "))
@@ -90,13 +94,14 @@
   "Note: the C version numbers coordinates from 1 to n, we go from 0 to n-1."
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                       (line-seq f)
-          [_n-coordinate n-dimension] (parse-line (first lines) str->int str->int)]
+          [n-coordinate n-dimension] (parse-line (first lines) str->int str->int)]
       (when-not (= n-dimension 2)
         (println "ERROR: number of dimensions in node file must be 2-D"))
-      (for-all [line (rest lines)]
-        ; TODO: a line starting with # is a comment
-        (let [[_id x y] (parse-line line str->int str->double str->double)]
-          {:x x :y y})))))
+      (for-all [line (take n-coordinate (rest lines))]
+        ; FIXME: (take n-coordinate ...) doesn't work correctly with comments
+        (when-not (comment? line)
+          (let [[_id x y] (parse-line line str->int str->double str->double)]
+            {:x x :y y}))))))
 
 (defn- read-poly [file-name mesh coordinates edge-map]
   (with-open [f (clojure.java.io/reader file-name)]
@@ -111,16 +116,17 @@
       {:edge-map
         (reduce
           (fn [edge-map line]
-            ; TODO: a line starting with # is a comment
-            (let [[id a b] (parse-line line str->int str->int str->int)]
-              (validate-coordinate a n-coordinate)
-              (validate-coordinate b n-coordinate)
-              (create-element mesh
-                [(nth coordinates (dec a))
-                 (nth coordinates (dec b))]
-                edge-map)))
+            (if (comment? line)
+              edge-map
+              (let [[id a b] (parse-line line str->int str->int str->int)]
+                (validate-coordinate a n-coordinate)
+                (validate-coordinate b n-coordinate)
+                (create-element mesh
+                  [(nth coordinates (dec a))
+                   (nth coordinates (dec b))]
+                  edge-map))))
           edge-map
-          (drop 2 lines))
+          (take n-boundaries (drop 2 lines))) ; FIXME: doesn't work correctly with comments
        :n-boundaries n-boundaries})))
 
 (defn- read-ele [file-name mesh coordinates edge-map]
@@ -133,18 +139,18 @@
       {:edge-map
         (reduce
           (fn [edge-map line]
-            ; TODO: a line starting with # is a comment
-            (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
-              (validate-coordinate a n-coordinate)
-              (validate-coordinate b n-coordinate)
-              (validate-coordinate c n-coordinate)
-              (create-element mesh
-                [(nth coordinates (dec a))
-                 (nth coordinates (dec b))
-                 (nth coordinates (dec c))]
-                edge-map)))
+            (if (comment? line)
+              (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
+                (validate-coordinate a n-coordinate)
+                (validate-coordinate b n-coordinate)
+                (validate-coordinate c n-coordinate)
+                (create-element mesh
+                  [(nth coordinates (dec a))
+                   (nth coordinates (dec b))
+                   (nth coordinates (dec c))]
+                  edge-map))))
           edge-map
-          (rest lines))
+          (take n-triangle (rest lines))) ; FIXME: doesn't work correctly with comments
        :n-triangles n-triangle})))
 
 (defn read [file-name-prefix]
