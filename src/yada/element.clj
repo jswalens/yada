@@ -124,5 +124,15 @@
       -1
       0)))
 
+(defn- is-encroached? [element]
+  (some? (:encroached-edge element)))
+
+(defn is-skinny? [element]
+  (:skinny? element))
+
+(defn is-bad? [element]
+  "Does `element` need to be refined?"
+  (or (is-encroached? element) (is-skinny? element)))
+
 (defn set-is-referenced? [element status]
   (= (:referenced? element) status))
