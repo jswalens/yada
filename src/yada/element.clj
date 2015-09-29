@@ -98,12 +98,12 @@
     maps))
 
 (defn- get-edges-midpoints-radii [coordinates]
-  (let [n-edge
-          (case (count coordinates)
-            2 1
-            3 3
-            (println "ERROR: expected two or three coordinates"))]
-    (collect-maps (map get-edge-midpoint-radius (range n-edge)))))
+  (let [n-edge (case (count coordinates)
+                 2 1
+                 3 3
+                 (println "ERROR: expected two or three coordinates"))]
+    (collect-maps
+      (map #(get-edge-midpoint-radius coordinates %) (range n-edge)))))
 
 (defn alloc [coordinates]
   (let [coordinates
