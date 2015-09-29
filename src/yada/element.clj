@@ -44,11 +44,11 @@
 (defn- calculate-circumcenter [coordinates]
   (case (count coordinates)
     2
-      (let [[{ax :x ay :ay} {bx :x by :y}] coordinates]
+      (let [[{ax :x ay :y} {bx :x by :y}] coordinates]
         {:x (/ (+ ax bx) 2.0)
          :y (/ (+ ay by) 2.0)})
     3
-      (let [[{ax :x ay :ay} {bx :x by :y} {cx :x cy :y}] coordinates
+      (let [[{ax :x ay :y} {bx :x by :y} {cx :x cy :y}] coordinates
             deltab_x (- bx ax)
             deltab_y (- by ay)
             deltac_x (- cx ax)
