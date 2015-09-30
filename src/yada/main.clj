@@ -34,7 +34,7 @@
         work-queue ; This is a heap in the C version
           (initialize-work mesh)
         init-num-bad-element
-          (count work-queue)
+          (count (:elements work-queue))
         _ (println "Initial number of mesh elements =" init-num-element)
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
