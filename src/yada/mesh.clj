@@ -36,7 +36,7 @@
     ; this edge does not appear in the boundary set of the mesh, it is not
     ; really encroached and should be removed in the element.
     (when-let [encroached-i (:encroached-edge @element)]
-      (when-not (.contains (:boundary-set @mesh) (nth (:edges @element) encroached-i))
+      (when-not (.contains (:boundary-set @mesh) (element/get-edge element encroached-i))
         (element/clear-encroached element)))
     ; 3. Search edge-map for neighbors
     (doseq [edge (:edges @element)]
@@ -56,7 +56,7 @@
   (let [element (element/alloc coordinates)]
     (when (= (count coordinates) 2)
       ; Add to boundary set
-      (alter mesh update-in [:boundary-set] into (element/get-edge element 0)))
+      (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
     (let [edge-map (insert mesh element edge-map)]
       (when (element/is-bad? element)
         ; Add to initially bad elements
