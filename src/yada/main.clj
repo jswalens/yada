@@ -28,7 +28,7 @@
           (parse-args args)
         _ (println "Angle constraint =" (:angle-constraint params))
         _ (println "Reading input...")
-        [mesh init-num-element]
+        {mesh :mesh init-num-element :n-element}
           (mesh/read (:input-prefix params))
         _ (println "done.")
         work-queue ; This is a heap in the C version
