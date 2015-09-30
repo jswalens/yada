@@ -140,6 +140,7 @@
         (reduce
           (fn [edge-map line]
             (if (comment? line)
+              edge-map
               (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
                 (validate-coordinate a n-coordinate)
                 (validate-coordinate b n-coordinate)
