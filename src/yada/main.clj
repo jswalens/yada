@@ -14,13 +14,12 @@
   (random/set-seed! 0)
   (mesh/shuffle-bad mesh)
   (loop [queue (priority-queue/create element/priority-queue-compare)]
-    (let [element (mesh/get-bad mesh)]
-      (if (nil? element)
-        queue
-        (do
-          (element/set-is-referenced? element true)
-          (recur
-            (priority-queue/add queue element)))))))
+    (if-let [element (mesh/get-bad mesh)]
+      (do
+        (element/set-is-referenced? element true) ; TODO: why?
+        (recur
+          (priority-queue/add queue element)))
+      queue)))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
