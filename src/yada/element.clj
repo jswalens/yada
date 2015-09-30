@@ -24,7 +24,12 @@
 
 (defn- check-angles [coordinates]
   (if (= (count coordinates) 3)
-    (let [angles (map (fn [[a b c]] (coordinate/angle a b c)) permutations)
+    (let [angles
+            (map
+              (fn [[a b c]]
+                (coordinate/angle (nth coordinates a) (nth coordinates b)
+                  (nth coordinates c)))
+              permutations)
           obtuse-angle-index
             (first (keep-indexed #(if (> %2 90.0) %1) angles))
             ; there will be at most one angle > 90 (geometric property, sum of
