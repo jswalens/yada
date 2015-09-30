@@ -28,3 +28,10 @@
     {:x -2 :y 0} {:x 3 :y 0} 5.0
     {:x 0  :y 0} {:x 1 :y 1} (Math/sqrt 2)
     {:x -3 :y 8} {:x 5 :y 2} 10.0))
+
+(deftest rad->deg-test
+  (are [rad deg] (= deg (@#'yada.coordinate/rad->deg rad))
+    Math/PI       180.0
+    (* 2 Math/PI) 360.0
+    (/ Math/PI 2) 90.0
+    1             (/ 180.0 Math/PI)))
