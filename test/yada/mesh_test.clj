@@ -6,3 +6,6 @@
   (is
     (= (list 1 2.3)
       (@#'yada.mesh/parse-line "1 2.3" @#'yada.mesh/str->int @#'yada.mesh/str->double))))
+
+(deftest read-test
+  (is (= 1264 (:n-element (read "inputs/633.2")))))
