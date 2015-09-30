@@ -46,7 +46,7 @@
         (element/add-neighbor neighbor element)))
     ; 4. Record this element's edges in edge-map.
     (reduce
-      (fn [edge-map edge] (assoc edge-map edge element))
+      (fn [edge-map edge] (update-in edge-map [edge] conj element))
       edge-map
       (:edges @element))))
 
