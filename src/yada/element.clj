@@ -172,6 +172,9 @@
 (defn set-is-referenced? [element status]
   (= (:referenced? @element) status))
 
+(defn is-garbage? [element]
+  (:garbage? @element))
+
 (defn add-neighbor [element neighbor]
   "Note: when calling (add-neighbor a b), don't forget to call
   (add-neighbor b a) as well."
