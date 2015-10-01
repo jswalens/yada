@@ -5,12 +5,12 @@
             [yada.element :as element]
             [yada.mesh :as mesh]))
 
-(defn parse-args [args]
+(defn- parse-args [args]
   {:angle-constraint 20.0
    :input-prefix     "inputs/633.2"
    :num-thread       1})
 
-(defn initialize-work [mesh]
+(defn- initialize-work [mesh]
   (random/set-seed! 0)
   (mesh/shuffle-bad mesh)
   (loop [queue (priority-queue/create element/priority-queue-compare)]
