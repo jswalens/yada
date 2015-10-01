@@ -17,8 +17,9 @@
 
 (defn insert [mesh element edge-map]
   "Insert `element` in `mesh`. This:
-  1. Sets the root element of the mesh if it is empty (so only for the first
-     insert into a new mesh).
+  1. Sets the root element of the mesh if it is empty (only for the first
+     insert into a new mesh, or immediately after the previous root has been
+     removed).
   2. Checks if the element is really encroached, and updates it if it is not.
   3. If an edge is shared with a previous element in the edge-map, the elements
      become neighbors.
@@ -49,6 +50,21 @@
       (fn [edge-map edge] (update-in edge-map [edge] conj element))
       edge-map
       (:edges @element))))
+
+(defn remove-element [mesh element]
+  "Remove `element` from `mesh`."
+  (dosync
+    ; If this removes the root, we simply set it to nil. The next mesh/insert
+    ; will select a new root, this is OK because every call to mesh/remove is
+    ; followed by a call to mesh/insert.
+    (when (= (:root-element @mesh) element)
+      (alter mesh assoc :root-element nil))
+    ; Remove element from neighbors
+    (doseq [neighbor (:neighbors @element)]
+      (alter (:neighbors neighbor)
+        (fn [old-neighbors] (remove #(= element %) old-neighbors))))
+    ; Set as garbage
+    (element/set-is-garbage? element true)))
 
 (defn insert-boundary [mesh boundary]
   (dosync
