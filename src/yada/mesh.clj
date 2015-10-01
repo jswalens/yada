@@ -50,6 +50,15 @@
       edge-map
       (:edges @element))))
 
+(defn insert-boundary [mesh boundary]
+  (dosync
+    (alter mesh update-in [:boundary-set] conj boundary)))
+
+(defn remove-boundary [mesh boundary]
+  (dosync
+    (alter mesh update-in [:boundary-set]
+      (fn [set] (remove #(= boundary %) set)))))
+
 (defn- create-element [mesh coordinates edge-map]
   "Creates element for `coordinates` and adds it to the `mesh`.
   Returns updates `edge-map`."
