@@ -180,3 +180,24 @@
   (add-neighbor b a) as well."
   (dosync
     (alter element update-in [:neighbors] conj neighbor)))
+
+(defn get-common-edge [element-a element-b]
+  (first
+    (flatten
+      (filter
+        (fn [edge-a]
+          (filter
+            (fn [edge-b] (= edge-a edge-b))
+            (:edges element-b)))
+        (:edges element-a)))))
+
+(defn get-new-point [element]
+  "`element` is encroached or skinny, so we create a new point to add.
+  If the element is skinny, this is its circumcenter; if it's encroached, this
+  is the midpoint of the encroached edge."
+  (dosync
+    (if (nil? (:encroached-edge @element))
+      ; If it's skinny, new point = the circumcenter
+      (:circum-center @element)
+      ; If it's encroached, new point = the midpoint of the encroached edge
+      (nth (:midpoints @element) (:encroached-edge @element)))))
