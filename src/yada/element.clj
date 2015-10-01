@@ -136,6 +136,10 @@
        :garbage?        false
        :referenced?     false})))
 
+(defn get-num-edge [element]
+  "Returns the number of edges of `element`."
+  (count (:edges @element)))
+
 (defn get-edge [element i]
   "Returns i'th edge of `element`."
   (nth (:edges @element) i))
