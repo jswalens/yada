@@ -154,6 +154,11 @@
       -1
       0)))
 
+(defn is-in-circum-circle? [element coordinate]
+  (dosync
+    (<= (coordinate/distance coordinate (:circum-center @element))
+        (:circum-radius @element))))
+
 (defn- is-encroached? [element]
   (some? (:encroached-edge @element)))
 
