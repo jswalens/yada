@@ -61,7 +61,7 @@
       (alter mesh assoc :root-element nil))
     ; Remove element from neighbors
     (doseq [neighbor (:neighbors @element)]
-      (alter (:neighbors neighbor)
+      (alter neighbor update-in [:neighbors]
         (fn [old-neighbors] (remove #(= element %) old-neighbors))))
     ; Set as garbage
     (element/set-is-garbage? element true)))

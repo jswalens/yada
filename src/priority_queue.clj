@@ -3,12 +3,21 @@
 (defn create [cmp]
   "Create an empty priority queue. Its elements will be ordered by comparing the
   result of `(key element)`."
-  {:cmp cmp :elements (list)})
+  (ref {:cmp cmp :elements (list)}))
 
-(defn add [queue val]
-  "Add `val` to `queue`."
-  (assoc queue :elements
-    (sort (:cmp queue) (cons val (:elements queue)))))
+(defn push [queue val]
+  "Push `val` in `queue`."
+  (dosync
+    (alter queue assoc :elements
+      (sort (:cmp @queue) (cons val (:elements @queue))))))
+
+(defn pop [queue]
+  "Pops element from `queue` and returns it.
+  Assumes `queue` is a ref around the priority queue."
+  (dosync
+    (when-let [e (first (:elements @queue))]
+      (alter queue update-in [:elements] rest)
+      e)))
 
 ;(defn remove [queue val]
 ;  "Remove `val` from `queue`."

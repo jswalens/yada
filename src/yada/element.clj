@@ -134,7 +134,7 @@
        :neighbors       [] ; list of refs to neighboring elements; TODO: use
                         ; element/list-compare to order
        :garbage?        false
-       :referenced?     false})))
+       :referenced?     false}))) ; TODO: we don't need this in Clojure as it's GC'd, I think
 
 (defn get-num-edge [element]
   "Returns the number of edges of `element`."
@@ -174,11 +174,19 @@
   (dosync
     (or (is-encroached? element) (is-skinny? element))))
 
-(defn set-is-referenced? [element status]
+(defn is-referenced? [element status]
   (= (:referenced? @element) status))
+
+(defn set-is-referenced? [element status]
+  (dosync
+    (alter element assoc :referenced? status)))
 
 (defn is-garbage? [element]
   (:garbage? @element))
+
+(defn set-is-garbage? [element status]
+  (dosync
+    (alter element assoc :garbage? status)))
 
 (defn add-neighbor [element neighbor]
   "Note: when calling (add-neighbor a b), don't forget to call

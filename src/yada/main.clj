@@ -3,6 +3,7 @@
   (:require [random]
             [priority-queue]
             [yada.element :as element]
+            [yada.region :as region]
             [yada.mesh :as mesh]))
 
 (defn- parse-args [args]
@@ -13,13 +14,32 @@
 (defn- initialize-work [mesh]
   (random/set-seed! 0)
   (mesh/shuffle-bad mesh)
-  (loop [queue (priority-queue/create element/priority-queue-compare)]
-    (if-let [element (mesh/get-bad mesh)]
-      (do
-        (element/set-is-referenced? element true) ; TODO: why?
-        (recur
-          (priority-queue/add queue element)))
-      queue)))
+  (let [queue (priority-queue/create element/priority-queue-compare)]
+    (loop []
+      (if-let [element (mesh/get-bad mesh)]
+        (do
+          (element/set-is-referenced? element true) ; TODO: why?
+          (priority-queue/push queue element)
+          (recur))
+        queue))))
+
+(defn- process [mesh work-queue]
+  (loop [n-added   0
+         n-process 0
+         region    (region/alloc)]
+    (if-let [element (priority-queue/pop work-queue)]
+      (if (dosync (element/is-garbage? element))
+        (recur n-added n-process region)
+        (let [added
+                (dosync
+                  (region/clear-bad region)
+                  (region/refine region element mesh))]
+          (dosync
+            (element/set-is-referenced? element false))
+          (dosync
+            (ref-set work-queue (region/transfer-bad region work-queue)))
+          (recur (+ n-added added) (inc n-process) region)))
+      {:n-added n-added :n-process n-process})))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
@@ -33,13 +53,13 @@
         work-queue ; This is a heap in the C version
           (initialize-work mesh)
         init-num-bad-element
-          (count (:elements work-queue))
+          (count (:elements @work-queue))
         _ (println "Initial number of mesh elements =" init-num-element)
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
-        [total-num-added num-process]
-          ; TODO: (time (thread/start process))
-          (time [0 0])
+        {total-num-added :n-added num-process :n-process}
+          (time (process mesh work-queue))
+          ; TODO: (time (thread/start (process mesh work-queue)))
         final-num-element
           (+ init-num-element total-num-added)
         _ (println "Final mesh size                 =" final-num-element)
