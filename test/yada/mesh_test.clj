@@ -32,6 +32,26 @@
     (is (= (list {:x 570110.0 :y 431911.0} {:x 585233.0 :y 413468.0} {:x 584373.0 :y 414654.0})
            (:coordinates @(first (:init-bad-queue @mesh)))))))
 
+(deftest remove-element-test
+  (let [{:keys [n-element mesh]}
+          (mesh/read "inputs/633.2")
+        root      (:root-element @mesh)
+        neighbors (:neighbors @root)]
+    (is (not (element/is-garbage? root)))
+    ; Sanity check: do all neighbors of root have root as neighbor?
+    (doseq [n neighbors]
+      (is (.contains (:neighbors @n) root)))
+    ; Remove root from mesh
+    (mesh/remove-element mesh root)
+    ; We expect:
+    ; * root is nil now
+    (is (nil? (:root-element @mesh)))
+    ; * root is garbage
+    (is (element/is-garbage? root))
+    ; * root is no longer neighbor of its (old) neighbors
+    (doseq [n neighbors]
+      (is (not (.contains (:neighbors @n) root))))))
+
 (deftest insert-remove-boundary-test
   (let [{:keys [n-element mesh]}
           (mesh/read "inputs/633.2")

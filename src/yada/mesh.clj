@@ -12,7 +12,6 @@
   (ref
     {:root-element   nil    ; not a pointer
      :init-bad-queue []
-     :size 0
      :boundary-set   #{}})) ; set of boundary edges. TODO: sorted in C version.
 
 (defn insert [mesh element edge-map]
