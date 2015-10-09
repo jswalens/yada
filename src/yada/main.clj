@@ -24,22 +24,22 @@
         queue))))
 
 (defn- process [mesh work-queue]
-  (loop [n-added   0
-         n-process 0
-         region    (region/alloc)]
-    (if-let [element (priority-queue/pop work-queue)]
-      (if (dosync (element/is-garbage? element))
-        (recur n-added n-process region)
-        (let [added
-                (dosync
-                  (region/clear-bad region)
-                  (region/refine region element mesh))]
-          (dosync
-            (element/set-is-referenced? element false))
-          (dosync
-            (ref-set work-queue (region/transfer-bad region work-queue)))
-          (recur (+ n-added added) (inc n-process) region)))
-      {:n-added n-added :n-process n-process})))
+  (let [region (region/alloc)]
+    (loop [n-added   0
+           n-process 0]
+      (if-let [element (priority-queue/pop work-queue)]
+        (if (dosync (element/is-garbage? element))
+          (recur n-added n-process)
+          (let [added
+                  (dosync
+                    (region/clear-bad region)
+                    (region/refine region element mesh))]
+            (dosync
+              (element/set-is-referenced? element false))
+            (dosync
+              (ref-set work-queue (region/transfer-bad region work-queue)))
+            (recur (+ n-added added) (inc n-process))))
+        {:n-added n-added :n-process n-process}))))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
