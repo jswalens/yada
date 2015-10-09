@@ -81,7 +81,7 @@
         (if encroached
           {:encroached encroached}
           (recur
-            (concat (rest expand-queue) to-expand)
+            (into (rest expand-queue) to-expand)
             new-visited
             borders 
             edge-map)))
@@ -107,7 +107,7 @@
             (if (element/is-garbage? element)
               [0 nil]
               (retriangulate element mesh visited borders edge-map))]
-      (alter region update-in [:bad-vector] concat new-bad-elements)
+      (alter region update-in [:bad-vector] into new-bad-elements)
       (+ n-refine n-retriangulate))))
 
 (defn clear-bad [region]
