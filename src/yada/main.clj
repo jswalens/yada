@@ -37,7 +37,7 @@
             (dosync
               (element/set-is-referenced? element false))
             (dosync
-              (ref-set work-queue (region/transfer-bad region work-queue)))
+              (region/transfer-bad region work-queue))
             (recur (+ n-added added) (inc n-process))))
         {:n-added n-added :n-process n-process}))))
 
