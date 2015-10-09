@@ -72,8 +72,7 @@
 
 (defn remove-boundary [mesh boundary]
   (dosync
-    (alter mesh update-in [:boundary-set]
-      (fn [set] (remove #(= boundary %) set)))))
+    (alter mesh update-in [:boundary-set] disj boundary)))
 
 (defn- create-element [mesh coordinates edge-map]
   "Creates element for `coordinates` and adds it to the `mesh`.
