@@ -12,8 +12,7 @@
    :num-thread       1})
 
 (defn- initialize-work [mesh]
-  (random/set-seed! 0)
-  (mesh/shuffle-bad mesh)
+  ;(mesh/shuffle-bad mesh) - Don't do this, to get deterministic results
   (let [queue (priority-queue/create element/priority-queue-compare)]
     (loop []
       (if-let [element (mesh/get-bad mesh)]
