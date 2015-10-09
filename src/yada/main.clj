@@ -8,7 +8,7 @@
 
 (defn- parse-args [args]
   {:angle-constraint 20.0
-   :input-prefix     "inputs/633.2"
+   :input-prefix     "inputs/spiral.2"
    :num-thread       1})
 
 (defn- initialize-work [mesh]
