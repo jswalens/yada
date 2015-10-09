@@ -26,17 +26,21 @@
         _ (is success?)]))
 
 (deftest test-633
-  ; Expected results from C version
-  (test-all "inputs/633.2" 1264 438 2678 705))
+  ; Expected results from C version, without shuffling the bad queue in
+  ; yada.c/initializeWork
+  (test-all "inputs/633.2" 1264 438 2698 710))
 
 (deftest test-dots
-  ; Expected results from C version
-  (test-all "inputs/dots.2" 198 70 586 193))
+  ; Expected results from C version, without shuffling the bad queue in
+  ; yada.c/initializeWork
+  (test-all "inputs/dots.2" 198 70 576 188))
 
 (deftest test-ladder
-  ; Expected results from C version
-  (test-all "inputs/ladder.2" 254 126 508 123))
+  ; Expected results from C version, without shuffling the bad queue in
+  ; yada.c/initializeWork
+  (test-all "inputs/ladder.2" 254 126 512 123))
 
 (deftest test-spiral
-  ; Expected results from C version
+  ; Expected results from C version, without shuffling the bad queue in
+  ; yada.c/initializeWork
   (test-all "inputs/spiral.2" 28 8 40 6))
