@@ -15,7 +15,7 @@
   "Re-order `coordinates` so that the first element is the smallest coordinate."
   (let [min-position (min-index coordinate/compare coordinates)]
     ; Rotate the list of coordinates so that min-position is first
-    (into (drop min-position coordinates) (take min-position coordinates))))
+    (concat (drop min-position coordinates) (take min-position coordinates))))
 
 (def permutations
   [[0 1 2]
