@@ -31,15 +31,15 @@
           (recur))
         queue))))
 
-(defn- process [mesh work-queue init-num-element]
+(defn- process [mesh init-n-element work-queue]
   (let [region (region/alloc)]
-    (loop [n-added   0
+    (loop [n-element init-n-element
            n-process 0]
       (if-let [element (priority-queue/pop work-queue)]
         (do
           (log "Processing element" (element/element->str element))
           (if (dosync (element/is-garbage? element))
-            (recur n-added n-process)
+            (recur n-element n-process)
             (let [added
                     (dosync
                       (region/clear-bad region)
@@ -49,9 +49,9 @@
               (dosync
                 (region/transfer-bad region work-queue))
               (log "additional bad elements: " (elements->str (:bad-vector @region)))
-              (mesh/check mesh (+ init-num-element n-added) true)
-              (recur (+ n-added added) (inc n-process)))))
-        {:n-added n-added :n-process n-process}))))
+              (mesh/check mesh (+ n-element added) true)
+              (recur (+ n-element added) (inc n-process)))))
+        {:n-element n-element :n-process n-process}))))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
@@ -71,14 +71,12 @@
         _ (println "Initial number of mesh elements =" init-num-element)
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
-        {total-num-added :n-added num-process :n-process}
-          (time (process mesh work-queue init-num-element))
-          ; TODO: (time (thread/start (process mesh work-queue)))
-        final-num-element
-          (+ init-num-element total-num-added)
-        _ (println "Final mesh size                 =" final-num-element)
-        _ (println "Number of elements processed    =" num-process)
+        {final-n-element :n-element n-process :n-process}
+          (time (process mesh init-num-element work-queue))
+          ; TODO: (time (thread/start (process mesh init-num-element work-queue)))
+        _ (println "Final mesh size                 =" final-n-element)
+        _ (println "Number of elements processed    =" n-process)
         success?
-          (mesh/check mesh final-num-element false)
+          (mesh/check mesh final-n-element false)
         _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
     nil))
