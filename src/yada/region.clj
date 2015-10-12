@@ -23,7 +23,9 @@
         after-elements
           (map
             #(element/alloc [center-coordinate (:first %) (:second %)])
-            borders)]
+            borders)
+        new-bad-elements
+          (filter element/is-bad? after-elements)]
     ; Remove the old triangles
     (doseq [v visited]
       (mesh/remove-element mesh v))
@@ -45,7 +47,7 @@
        (- (count visited))
        (if (= (element/get-num-edge element) 1) 2 0)
        (count borders))
-     after-elements]))
+     new-bad-elements]))
 
 (defn- visit-neighbors [current center-element visited borders edge-map]
   (let [neighbors         (:neighbors @current)
