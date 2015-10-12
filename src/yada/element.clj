@@ -22,7 +22,7 @@
    [1 2 0]
    [2 0 1]])
 
-(defn- check-angles [coordinates]
+(defn- check-coordinates [coordinates]
   (if (= (count coordinates) 3)
     (let [angles
             (map
@@ -114,7 +114,7 @@
   (let [coordinates
           (minimize-coordinates coordinates)
         {:keys [skinny? encroached-edge min-angle]}
-          (check-angles coordinates)
+          (check-coordinates coordinates)
         {:keys [circum-center circum-radius]}
           (calculate-circumcircle coordinates)
         {:keys [edges midpoints radii]}
@@ -214,3 +214,8 @@
       (:circum-center @element)
       ; If it's encroached, new point = the midpoint of the encroached edge
       (nth (:midpoints @element) (:encroached-edge @element)))))
+
+(defn check-angles [element]
+  (if (= (count (:coordinates @element)) 3)
+    (not (:skinny? (check-coordinates (:coordinates @element))))
+    true))

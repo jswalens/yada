@@ -64,7 +64,6 @@
         _ (println "Final mesh size                 =" final-num-element)
         _ (println "Number of elements processed    =" num-process)
         success?
-          ;(mesh/check mesh final-num-element) - disabled
-          true
+          (mesh/check mesh final-num-element)
         _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
     nil))

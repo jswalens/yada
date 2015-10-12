@@ -214,3 +214,43 @@
   "Shuffle the bad queue."
   (dosync
     (alter mesh update-in [:init-bad-queue] shuffle)))
+
+(defn check [mesh expected-n-element]
+  (when (nil? (:root-element @mesh))
+    (println "ERROR: root element should not be nil."))
+  ; Breadth-first search
+  (let [[n-element n-bad-triangle]
+          (loop [queue          [(:root-element @mesh)]
+                 visited        #{}
+                 n-element      0
+                 n-bad-triangle 0]
+            (let [[cur & rst] queue]
+              (if (nil? cur)
+                [n-element n-bad-triangle]
+                (if (contains? visited cur)
+                  (recur rst visited n-element n-bad-triangle)
+                  (let [new-visited
+                          (conj visited cur)
+                        new-queue
+                          (into rst (remove #(contains? new-visited %) (:neighbors @cur)))
+                        new-n-element
+                          (+ n-element 1)
+                        new-n-bad-triangle
+                          (if (element/check-angles cur)
+                            n-bad-triangle
+                            (+ n-bad-triangle 1))]
+                    (recur
+                      new-queue
+                      new-visited
+                      new-n-element
+                      new-n-bad-triangle))))))]
+    (println "Number of elements      =" n-element)
+    (println "Number of bad triangles =" n-bad-triangle)
+    (when (not= n-element expected-n-element)
+      (println (str "ERROR: number of elements actually in mesh (" n-element
+        ") != number of elements reportedly in mesh (" expected-n-element ").")))
+    (when (> n-bad-triangle 0)
+      (println "ERROR: number of bad triangles should be 0."))
+    (or (nil? (:root-element @mesh))
+        (not= n-element expected-n-element)
+        (> n-bad-triangle 0))))
