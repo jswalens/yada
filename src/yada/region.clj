@@ -20,29 +20,37 @@
   "Returns [n new-bad-elements]."
   (let [center-coordinate
           (element/get-new-point element)
+        _ ; Remove the old triangles
+          (doseq [v visited]
+            (mesh/remove-element mesh v))
+        edge-map
+          ; If segment is encroached, split it in half
+          (if (= (element/get-num-edge element) 1)
+            (let [edge (element/get-edge element 0)
+                  a    (element/alloc [center-coordinate (:first edge)])
+                  b    (element/alloc [center-coordinate (:second edge)])
+                  edge-map (mesh/insert mesh a edge-map)
+                  edge-map (mesh/insert mesh b edge-map)
+                  _    (mesh/remove-boundary mesh (element/get-edge element 0))
+                  _    (mesh/insert-boundary mesh (element/get-edge a 0))
+                  _    (mesh/insert-boundary mesh (element/get-edge b 0))]
+              edge-map)
+            edge-map)
+        ; Insert the new triangles. These are constructed using the new point
+        ; and the two points from the border segment.
         after-elements
           (map
             #(element/alloc [center-coordinate (:first %) (:second %)])
             borders)
+        _
+          (doall
+            (reduce
+              (fn [edge-map after]
+                (mesh/insert mesh after edge-map))
+              edge-map
+              after-elements))
         new-bad-elements
           (filter element/is-bad? after-elements)]
-    ; Remove the old triangles
-    (doseq [v visited]
-      (mesh/remove-element mesh v))
-    ; If segment is encroached, split it in half
-    (when (= (element/get-num-edge element) 1)
-      (let [edge (element/get-edge element 0)
-            a    (element/alloc [center-coordinate (:first edge)])
-            b    (element/alloc [center-coordinate (:second edge)])]
-        (mesh/insert mesh a edge-map)
-        (mesh/insert mesh b edge-map)
-        (mesh/remove-boundary mesh (element/get-edge element 0))
-        (mesh/insert-boundary mesh (element/get-edge a 0))
-        (mesh/insert-boundary mesh (element/get-edge b 0))))
-    ; Insert the new triangles. These are constructed using the new point and
-    ; the two points from the border segment.
-    (doseq [after after-elements]
-      (mesh/insert mesh after edge-map))
     [(+
        (- (count visited))
        (if (= (element/get-num-edge element) 1) 2 0)
