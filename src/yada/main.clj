@@ -6,6 +6,8 @@
             [yada.region :as region]
             [yada.mesh :as mesh]))
 
+(def log println)
+
 (defn- parse-args [args]
   {:angle-constraint 20.0
    :input-prefix     "inputs/spiral.2"
@@ -27,17 +29,20 @@
     (loop [n-added   0
            n-process 0]
       (if-let [element (priority-queue/pop work-queue)]
-        (if (dosync (element/is-garbage? element))
-          (recur n-added n-process)
-          (let [added
-                  (dosync
-                    (region/clear-bad region)
-                    (region/refine region element mesh))]
-            (dosync
-              (element/set-is-referenced? element false))
-            (dosync
-              (region/transfer-bad region work-queue))
-            (recur (+ n-added added) (inc n-process))))
+        (do
+          (log "Processing element" (element/element->str element))
+          (if (dosync (element/is-garbage? element))
+            (recur n-added n-process)
+            (let [added
+                    (dosync
+                      (region/clear-bad region)
+                      (region/refine region element mesh))]
+              (dosync
+                (element/set-is-referenced? element false))
+              (println "length bad vector:" (count (:bad-vector @region)))
+              (dosync
+                (region/transfer-bad region work-queue))
+              (recur (+ n-added added) (inc n-process)))))
         {:n-added n-added :n-process n-process}))))
 
 (defn -main [& args]
@@ -51,6 +56,8 @@
         _ (println "done.")
         work-queue ; This is a heap in the C version
           (initialize-work mesh)
+        _ (log "Work queue:")
+        _ (doseq [e (:elements @work-queue)] (log (element/element->str e)))
         init-num-bad-element
           (count (:elements @work-queue))
         _ (println "Initial number of mesh elements =" init-num-element)
