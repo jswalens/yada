@@ -1,5 +1,6 @@
 (ns yada.element
-  (:require [yada.options :as options]
+  (:require [clojure.string]
+            [yada.options :as options]
             [yada.coordinate :as coordinate]))
 
 (defn- min-index [cmp lst]
@@ -219,3 +220,8 @@
   (if (= (count (:coordinates @element)) 3)
     (not (:skinny? (check-coordinates (:coordinates @element))))
     true))
+
+(defn element->str [element]
+  (->> (:coordinates @element)
+    (map coordinate/coordinate->str)
+    (clojure.string/join " ")))

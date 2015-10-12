@@ -31,3 +31,6 @@
         cos   (/ (double num) (double denom))
         alpha (Math/acos cos)]
     (rad->deg alpha)))
+
+(defn coordinate->str [coordinate]
+  (str "(" (:x coordinate) ", " (:y coordinate) ")"))
