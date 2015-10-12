@@ -233,8 +233,6 @@
                           (conj visited cur)
                         new-queue
                           (into rst (remove #(contains? new-visited %) (:neighbors @cur)))
-                        new-n-element
-                          (+ n-element 1)
                         new-n-bad-triangle
                           (if (element/check-angles cur)
                             n-bad-triangle
@@ -242,7 +240,7 @@
                     (recur
                       new-queue
                       new-visited
-                      new-n-element
+                      (+ n-element 1)
                       new-n-bad-triangle))))))]
     (println "Number of elements      =" n-element)
     (println "Number of bad triangles =" n-bad-triangle)
