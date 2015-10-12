@@ -57,9 +57,15 @@
       (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
         ;TODO: (element/is-garbage? neighbor) ; so we can detect conflicts
         (if (element/is-in-circum-circle? neighbor center-coordinate)
+          ; This element is part of the region:
           (if (and (not boundary?) (= (element/get-num-edge neighbor) 1))
+            ; It encroaches on the mesh boundary, so we'll have to split it and
+            ; restart:
             (assoc m :encroached neighbor)
+            ; Continue breadth-first search:
             (update-in m [:to-expand] conj neighbor))
+          ; This element is not part of the region, so it borders the region.
+          ; Sove its info for retriangulation.
           (let [border-edge (element/get-common-edge @neighbor @current)]
             ; TODO: if no border edge: tx restart - can this happen in Clojure's STM?
             (-> m
@@ -83,7 +89,7 @@
         (if encroached
           {:encroached encroached}
           (recur
-            (into (rest expand-queue) to-expand)
+            (into (rest expand-queue) to-expand) ; will never have duplicates
             new-visited
             borders 
             edge-map)))
