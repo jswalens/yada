@@ -35,6 +35,7 @@
   (let [region (region/alloc)]
     (loop [n-element init-n-element
            n-process 0]
+      (mesh/check mesh n-element true)
       (if-let [element (priority-queue/pop work-queue)]
         (do
           (log "Processing element" (element/element->str element))
@@ -49,7 +50,6 @@
               (dosync
                 (region/transfer-bad region work-queue))
               (log "additional bad elements: " (elements->str (:bad-vector @region)))
-              (mesh/check mesh (+ n-element added) true)
               (recur (+ n-element added) (inc n-process)))))
         {:n-element n-element :n-process n-process}))))
 
