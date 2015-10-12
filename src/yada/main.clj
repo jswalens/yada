@@ -31,7 +31,7 @@
           (recur))
         queue))))
 
-(defn- process [mesh work-queue]
+(defn- process [mesh work-queue init-num-element]
   (let [region (region/alloc)]
     (loop [n-added   0
            n-process 0]
@@ -49,6 +49,7 @@
               (dosync
                 (region/transfer-bad region work-queue))
               (log "additional bad elements: " (elements->str (:bad-vector @region)))
+              (mesh/check mesh (+ init-num-element n-added) true)
               (recur (+ n-added added) (inc n-process)))))
         {:n-added n-added :n-process n-process}))))
 
@@ -71,13 +72,13 @@
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
         {total-num-added :n-added num-process :n-process}
-          (time (process mesh work-queue))
+          (time (process mesh work-queue init-num-element))
           ; TODO: (time (thread/start (process mesh work-queue)))
         final-num-element
           (+ init-num-element total-num-added)
         _ (println "Final mesh size                 =" final-num-element)
         _ (println "Number of elements processed    =" num-process)
         success?
-          (mesh/check mesh final-num-element)
+          (mesh/check mesh final-num-element false)
         _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
     nil))

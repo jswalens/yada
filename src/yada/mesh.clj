@@ -215,7 +215,7 @@
   (dosync
     (alter mesh update-in [:init-bad-queue] shuffle)))
 
-(defn check [mesh expected-n-element]
+(defn check [mesh expected-n-element ongoing?]
   (when (nil? (:root-element @mesh))
     (println "ERROR: root element should not be nil."))
   ; Breadth-first search
@@ -247,8 +247,8 @@
     (when (not= n-element expected-n-element)
       (println (str "ERROR: number of elements actually in mesh (" n-element
         ") != number of elements reportedly in mesh (" expected-n-element ").")))
-    (when (> n-bad-triangle 0)
+    (when (and (not ongoing?) (> n-bad-triangle 0))
       (println "ERROR: number of bad triangles should be 0."))
-    (or (nil? (:root-element @mesh))
-        (not= n-element expected-n-element)
-        (> n-bad-triangle 0))))
+    (and (some? (:root-element @mesh))
+         (= n-element expected-n-element)
+         (or ongoing? (= n-bad-triangle 0)))))

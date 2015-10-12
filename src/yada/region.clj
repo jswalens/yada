@@ -17,14 +17,16 @@
     (element/set-is-referenced? bad-element true)))
 
 (defn retriangulate [element mesh visited borders edge-map]
-  "Returns [n new-bad-elements]."
+  "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
           (element/get-new-point element)
         _ ; Remove the old triangles
           (doseq [v visited]
             (mesh/remove-element mesh v))
+        ; If segment is encroached, split it in half
+        segment-encroached?
+          (= (element/get-num-edge element) 1)
         edge-map
-          ; If segment is encroached, split it in half
           (if (= (element/get-num-edge element) 1)
             (let [edge (element/get-edge element 0)
                   a    (element/alloc [center-coordinate (:first edge)])
@@ -53,7 +55,7 @@
           (filter element/is-bad? after-elements)]
     [(+
        (- (count visited))
-       (if (= (element/get-num-edge element) 1) 2 0)
+       (if segment-encroached? 2 0)
        (count borders))
      new-bad-elements]))
 
@@ -104,6 +106,7 @@
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
 (defn refine [region element mesh]
+  "Returns number of inserted elements."
   (dosync
     (let [{:keys [n-refine visited borders edge-map]}
             (loop [n 0]
