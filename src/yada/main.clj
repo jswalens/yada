@@ -34,19 +34,20 @@
 (defn- process [mesh init-n-element work-queue]
   (let [region (region/alloc)]
     (loop [n-element init-n-element
-           n-process 0]
+           i         0]
       ;(mesh/check mesh n-element true)
       (if-let [element (priority-queue/pop work-queue)]
         (do
           (log "Processing element" (element/element->str element))
           (if (element/is-garbage? element)
-            (recur n-element n-process)
-            (let [added (region/refine region element mesh)]
-              (region/transfer-bad region work-queue)
-              (log "additional bad elements: "
-                (elements->str (:bad-vector @region)))
-              (recur (+ n-element added) (inc n-process)))))
-        {:n-element n-element :n-process n-process}))))
+            (recur n-element i)
+            (let [{n-added :n new-bad-elements :bad}
+                    (region/refine region element mesh)]
+              ; add bad elements to work queue
+              (log "additional bad elements: " (elements->str new-bad-elements))
+              (doseq [e new-bad-elements] (priority-queue/push work-queue e))
+              (recur (+ n-element n-added) (inc i)))))
+        {:n-element n-element :n-processed i}))))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
@@ -66,11 +67,11 @@
         _ (println "Initial number of mesh elements =" init-num-element)
         _ (println "Initial number of bad elements  =" init-num-bad-element)
         _ (println "Starting triangulation...")
-        {final-n-element :n-element n-process :n-process}
+        {final-n-element :n-element n-processed :n-processed}
           (time (process mesh init-num-element work-queue))
           ; TODO: (time (thread/start (process mesh init-num-element work-queue)))
         _ (println "Final mesh size                 =" final-n-element)
-        _ (println "Number of elements processed    =" n-process)
+        _ (println "Number of elements processed    =" n-processed)
         success?
           (mesh/check mesh final-n-element false)
         _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
