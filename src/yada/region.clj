@@ -114,21 +114,22 @@
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
 (defn refine [region element mesh]
-  "Returns [number of inserted elements, visited, borders]."
+  "Returns {:n number of inserted elements :visited visited :borders borders}."
   (dosync
     (let [{:keys [n-refine visited borders edge-map]}
-            (loop [n       0
-                   visited []
-                   borders []]
+            (loop [n-refine 0
+                   visited  []
+                   borders  []]
               (if (element/is-garbage? element)
-                {:n-refine n :visited visited :borders borders}
+                {:n-refine n-refine :visited visited :borders borders}
                 (let [res (grow-region element)
                       encroached (:encroached res)]
                   (if encroached
                     (let [_ (element/set-is-referenced? encroached true)
-                          [n-added visited borders] (refine region encroached mesh)]
-                      (recur (+ n n-added) visited borders))
-                    {:n-refine n
+                          {:keys [n visited borders]}
+                            (refine region encroached mesh)]
+                      (recur (+ n-refine n) visited borders))
+                    {:n-refine n-refine
                      :visited  (:visited res)
                      :borders  (:borders res)
                      :edge-map (:edge-map res)}))))
@@ -137,7 +138,7 @@
               [0 nil]
               (retriangulate element mesh visited borders edge-map))]
       (alter region update-in [:bad-vector] into new-bad-elements)
-      [(+ n-refine n-retriangulate) visited borders])))
+      {:n (+ n-refine n-retriangulate) :visited visited :borders borders})))
 
 (defn clear-bad [region]
   (alter region assoc :bad-vector nil))

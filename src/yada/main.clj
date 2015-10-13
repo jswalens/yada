@@ -41,7 +41,7 @@
           (log "Processing element" (element/element->str element))
           (if (dosync (element/is-garbage? element))
             (recur n-element n-process)
-            (let [[added _visited _borders]
+            (let [{added :n}
                     (dosync
                       (region/clear-bad region)
                       (region/refine region element mesh))]
