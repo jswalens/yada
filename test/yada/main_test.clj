@@ -3,32 +3,29 @@
             [yada.main]
             [yada.mesh :as mesh]))
 
-(defn test-all [input-name expect-init-num-element expect-init-num-bad-element
-  expect-final-num-element expect-num-process]
-  (let [{mesh :mesh init-num-element :n-element}
+(defn test-all [input-name expect-init-n-element expect-init-n-bad-element
+  expect-final-n-element expect-n-processed]
+  (let [{mesh :mesh init-n-element :n-element}
           (mesh/read input-name)
         ; mesh tested in mesh_test
         work-queue
           (@#'yada.main/initialize-work mesh)
-        init-num-bad-element
+        init-n-bad-element
           (count (:elements @work-queue))
-        _ (is (= expect-init-num-element init-num-element))
-        _ (is (= expect-init-num-bad-element init-num-bad-element))
-        {total-num-added :n-added num-process :n-process}
-          (@#'yada.main/process mesh work-queue)
-        final-num-element
-          (+ init-num-element total-num-added)
-        _ (is (= expect-final-num-element final-num-element))
-        _ (is (= expect-num-process num-process))
+        _ (is (= expect-init-n-element init-n-element))
+        _ (is (= expect-init-n-bad-element init-n-bad-element))
+        {final-n-element :n-element n-processed :n-processed}
+          (@#'yada.main/process mesh init-n-element work-queue)
+        _ (is (= expect-final-n-element final-n-element))
+        _ (is (= expect-n-processed n-processed))
         success?
-          ;(mesh/check mesh final-num-element) - disabled TODO
-          true
+          (mesh/check mesh final-n-element false)
         _ (is success?)]))
 
-(deftest test-633
+(deftest test-spiral
   ; Expected results from C version, without shuffling the bad queue in
   ; yada.c/initializeWork
-  (test-all "inputs/633.2" 1264 438 2698 710))
+  (test-all "inputs/spiral.2" 28 8 40 6))
 
 (deftest test-dots
   ; Expected results from C version, without shuffling the bad queue in
@@ -40,7 +37,7 @@
   ; yada.c/initializeWork
   (test-all "inputs/ladder.2" 254 126 512 123))
 
-(deftest test-spiral
+(deftest test-633
   ; Expected results from C version, without shuffling the bad queue in
   ; yada.c/initializeWork
-  (test-all "inputs/spiral.2" 28 8 40 6))
+  (test-all "inputs/633.2" 1264 438 2698 710))
