@@ -108,7 +108,7 @@
             edge-map)))
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
-(defn refine [region element mesh]
+(defn- refine-helper [region element mesh]
   "Returns {:n number of inserted elements :visited visited :borders borders}."
   (dosync
     (let [{:keys [n-refine visited borders edge-map]}
@@ -122,7 +122,7 @@
                   (if encroached
                     (let [_ (element/set-is-referenced? encroached true)
                           {:keys [n visited borders]}
-                            (refine region encroached mesh)]
+                            (refine-helper region encroached mesh)]
                       (recur (+ n-refine n) visited borders))
                     {:n-refine n-refine
                      :visited  (:visited res)
@@ -137,8 +137,13 @@
         (element/set-is-referenced? e true))
       {:n (+ n-refine n-retriangulate) :visited visited :borders borders})))
 
-(defn clear-bad [region]
-  (alter region assoc :bad-vector nil))
+(defn refine [region element mesh]
+  "Returns number of inserted elements"
+  (dosync
+    (alter region assoc :bad-vector nil)
+    (let [{n :n} (refine-helper region element mesh)]
+      (element/set-is-referenced? element false)
+      n)))
 
 (defn transfer-bad [region work-queue]
   "Add all non-garbage bad elements from `region` to `work-queue`."

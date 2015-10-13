@@ -39,17 +39,12 @@
       (if-let [element (priority-queue/pop work-queue)]
         (do
           (log "Processing element" (element/element->str element))
-          (if (dosync (element/is-garbage? element))
+          (if (element/is-garbage? element)
             (recur n-element n-process)
-            (let [{added :n}
-                    (dosync
-                      (region/clear-bad region)
-                      (region/refine region element mesh))]
-              (dosync
-                (element/set-is-referenced? element false))
-              (dosync
-                (region/transfer-bad region work-queue))
-              (log "additional bad elements: " (elements->str (:bad-vector @region)))
+            (let [added (region/refine region element mesh)]
+              (region/transfer-bad region work-queue)
+              (log "additional bad elements: "
+                (elements->str (:bad-vector @region)))
               (recur (+ n-element added) (inc n-process)))))
         {:n-element n-element :n-process n-process}))))
 
