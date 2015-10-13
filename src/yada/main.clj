@@ -32,22 +32,20 @@
         queue))))
 
 (defn- process [mesh init-n-element work-queue]
-  (let [region (region/alloc)]
-    (loop [n-element init-n-element
-           i         0]
-      ;(mesh/check mesh n-element true)
-      (if-let [element (priority-queue/pop work-queue)]
-        (do
-          (log "Processing element" (element/element->str element))
-          (if (element/is-garbage? element)
-            (recur n-element i)
-            (let [{n-added :n new-bad-elements :bad}
-                    (region/refine region element mesh)]
-              ; add bad elements to work queue
-              (log "additional bad elements: " (elements->str new-bad-elements))
-              (doseq [e new-bad-elements] (priority-queue/push work-queue e))
-              (recur (+ n-element n-added) (inc i)))))
-        {:n-element n-element :n-processed i}))))
+  (loop [n-element init-n-element
+         i         0]
+    ;(mesh/check mesh n-element true)
+    (if-let [element (priority-queue/pop work-queue)]
+      (do
+        (log "Processing element" (element/element->str element))
+        (if (element/is-garbage? element)
+          (recur n-element i)
+          (let [{n-added :n new-bad-elements :bad} (region/refine element mesh)]
+            ; add bad elements to work queue
+            (log "additional bad elements: " (elements->str new-bad-elements))
+            (doseq [e new-bad-elements] (priority-queue/push work-queue e))
+            (recur (+ n-element n-added) (inc i)))))
+      {:n-element n-element :n-processed i})))
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."

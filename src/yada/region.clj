@@ -6,10 +6,6 @@
 ;(def log println)
 (defn log [& _] nil)
 
-(defn alloc []
-  (ref ; XXX one ref?
-    {:center-coordinate nil}))
-
 (defn retriangulate [element mesh visited borders edge-map]
   "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
@@ -104,7 +100,7 @@
             edge-map)))
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
-(defn- refine-helper [region element mesh]
+(defn- refine-helper [element mesh]
   "Returns `{:n number of inserted elements :bad new bad elements
     :visited old visited elements :borders new border elements}`."
   (dosync
@@ -120,7 +116,7 @@
                   (if encroached
                     (let [_ (element/set-is-referenced? encroached true)
                           {:keys [n bad visited borders]}
-                            (refine-helper region encroached mesh)]
+                            (refine-helper encroached mesh)]
                       (recur (+ n-refine n) bad visited borders))
                     {:n-refine n-refine
                      :bad      bad
@@ -138,12 +134,12 @@
        :visited visited
        :borders borders})))
 
-(defn refine [region element mesh]
+(defn refine [element mesh]
   "Refine the region around element, i.e. remove element and replace it with
   something better.
 
   Returns `{:n number of inserted elements :bad new (non-garbage) bad elements}`."
   (dosync
-    (let [{n :n bad :bad} (refine-helper region element mesh)]
+    (let [{n :n bad :bad} (refine-helper element mesh)]
       (element/set-is-referenced? element false) ; element has been removed
       {:n n :bad bad})))
