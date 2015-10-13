@@ -1,4 +1,5 @@
-(ns random)
+(ns random
+  (:refer-clojure :exclude [rand-int]))
 
 (def rng (new java.util.Random 1))
 

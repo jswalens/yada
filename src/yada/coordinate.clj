@@ -1,4 +1,5 @@
-(ns yada.coordinate)
+(ns yada.coordinate
+  (:refer-clojure :exclude [compare]))
 
 (defn compare [a b]
   "Compare two vectors `a` and `b` (lexicographically)."

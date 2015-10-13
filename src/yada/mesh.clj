@@ -1,4 +1,5 @@
 (ns yada.mesh
+  (:refer-clojure :exclude [read])
   (:require [clojure.string :as str]
             [random]
             [yada.element :as element]))
@@ -14,7 +15,7 @@
      :init-bad-queue []
      :boundary-set   #{}})) ; set of boundary edges. TODO: sorted in C version.
 
-(defn insert [mesh element edge-map]
+(defn insert-element [mesh element edge-map]
   "Insert `element` in `mesh`. This:
   1. Sets the root element of the mesh if it is empty (only for the first
      insert into a new mesh, or immediately after the previous root has been
@@ -53,9 +54,9 @@
 (defn remove-element [mesh element]
   "Remove `element` from `mesh`."
   (dosync
-    ; If this removes the root, we simply set it to nil. The next mesh/insert
-    ; will select a new root, this is OK because every call to mesh/remove is
-    ; followed by a call to mesh/insert.
+    ; If this removes the root, we simply set it to nil. The next
+    ; mesh/insert-element will select a new root, this is OK because every call
+    ; to mesh/remove-element is followed by a call to mesh/insert-element.
     (when (= (:root-element @mesh) element)
       (alter mesh assoc :root-element nil))
     ; Remove element from neighbors
@@ -80,7 +81,7 @@
     (when (= (count coordinates) 2)
       ; Add to boundary set
       (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
-    (let [edge-map (insert mesh element edge-map)]
+    (let [edge-map (insert-element mesh element edge-map)]
       (when (element/is-bad? element)
         ; Add to initially bad elements
         (alter mesh update-in [:init-bad-queue] conj element))

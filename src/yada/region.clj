@@ -35,8 +35,8 @@
             (let [edge (element/get-edge element 0)
                   a    (element/alloc [center-coordinate (:first edge)])
                   b    (element/alloc [center-coordinate (:second edge)])
-                  edge-map (mesh/insert mesh a edge-map)
-                  edge-map (mesh/insert mesh b edge-map)
+                  edge-map (mesh/insert-element mesh a edge-map)
+                  edge-map (mesh/insert-element mesh b edge-map)
                   _    (mesh/remove-boundary mesh (element/get-edge element 0))
                   _    (mesh/insert-boundary mesh (element/get-edge a 0))
                   _    (mesh/insert-boundary mesh (element/get-edge b 0))]
@@ -53,7 +53,7 @@
             (reduce
               (fn [edge-map after]
                 (log "Inserting" (element/element->str after))
-                (mesh/insert mesh after edge-map))
+                (mesh/insert-element mesh after edge-map))
               edge-map
               after-elements))
         new-bad-elements

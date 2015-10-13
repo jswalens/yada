@@ -1,4 +1,5 @@
-(ns priority-queue)
+(ns priority-queue
+  (:refer-clojure :exclude [pop]))
 
 (defn create [cmp]
   "Create an empty priority queue. Its elements will be ordered by comparing the
