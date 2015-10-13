@@ -1,5 +1,5 @@
 (ns priority-queue
-  (:refer-clojure :exclude [pop]))
+  (:refer-clojure :exclude [into pop]))
 
 (defn create [cmp]
   "Create an empty priority queue. Its elements will be ordered by comparing the
@@ -22,8 +22,14 @@
                        ; the ones it is equal to
                       (recur rst (conj new-elements fst))
                     +1 ; old > val: insert it and end the loop
-                      (into (conj new-elements val) old-elements)))))]
+                      (clojure.core/into (conj new-elements val) old-elements)))))]
       (alter queue assoc :elements new-elements))))
+
+(defn into [queue vals]
+  "Push list of values `vals` into `queue`."
+  (dosync
+    (doseq [v vals]
+      (push queue v))))
 
 (defn pop [queue]
   "Pops element from `queue` and returns it.
