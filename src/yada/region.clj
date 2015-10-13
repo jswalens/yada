@@ -14,11 +14,6 @@
      ;:border-list       [] ; edges adjacent to region; list to avoid duplicates; XXX sort uning element_listCompareEdge
      :bad-vector        []})) ; list of bad elements
 
-(defn add-to-bad-vector [region bad-element]
-  (dosync
-    (alter region update-in [:bad-vector] conj bad-element)
-    (element/set-is-referenced? bad-element true)))
-
 (defn retriangulate [element mesh visited borders edge-map]
   "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
@@ -138,6 +133,8 @@
               [0 nil]
               (retriangulate element mesh visited borders edge-map))]
       (alter region update-in [:bad-vector] into new-bad-elements)
+      (doseq [e new-bad-elements]
+        (element/set-is-referenced? e true))
       {:n (+ n-refine n-retriangulate) :visited visited :borders borders})))
 
 (defn clear-bad [region]
