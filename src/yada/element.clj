@@ -197,13 +197,10 @@
 
 (defn get-common-edge [element-a element-b]
   (first
-    (flatten
-      (filter
-        (fn [edge-a]
-          (filter
-            (fn [edge-b] (= edge-a edge-b))
-            (:edges element-b)))
-        (:edges element-a)))))
+    (for [edge-a (:edges element-a)
+          edge-b (:edges element-b)
+          :when (= edge-a edge-b)]
+      edge-a)))
 
 (defn get-new-point [element]
   "`element` is encroached or skinny, so we create a new point to add.

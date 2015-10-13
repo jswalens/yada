@@ -35,13 +35,13 @@
   (let [region (region/alloc)]
     (loop [n-element init-n-element
            n-process 0]
-      (mesh/check mesh n-element true)
+      ;(mesh/check mesh n-element true)
       (if-let [element (priority-queue/pop work-queue)]
         (do
           (log "Processing element" (element/element->str element))
           (if (dosync (element/is-garbage? element))
             (recur n-element n-process)
-            (let [added
+            (let [[added _visited _borders]
                     (dosync
                       (region/clear-bad region)
                       (region/refine region element mesh))]
