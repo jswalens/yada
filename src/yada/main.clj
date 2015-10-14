@@ -27,7 +27,8 @@
         (log "Processing element " (element/element->str element))
         (if (element/is-garbage? element)
           (recur n-element i)
-          (let [{n-added :n new-bad-elements :bad} (region/refine element mesh)]
+          (let [{n-added :n new-bad-elements :bad}
+                  (p :refine (region/refine element mesh))]
             (log "additional bad elements: "
               (element/elements->str new-bad-elements))
             (priority-queue/into work-queue new-bad-elements)
