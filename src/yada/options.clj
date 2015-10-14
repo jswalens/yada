@@ -5,7 +5,7 @@
 (def angle-constraint (atom 20.0))
 
 ;(defn log [& args] (println (apply str args)))
-(defn log [& args] nil)
+(defmacro log [& args] nil)
 
 (defn error [& args] (apply println "ERROR:" args))
 
