@@ -77,7 +77,8 @@
           ; This element is not part of the region, so it borders the region.
           ; Save its info for retriangulation.
           (let [border-edge (element/get-common-edge @neighbor @current)]
-            ; TODO: if no border edge: tx restart - can this happen in Clojure's STM?
+            ; C version says here: if no border-edge found: restart the tx.
+            ; As far as I can see, this error is not possible in Clojure's STM.
             (when (.contains borders border-edge)
               (error "duplicate in borders: " border-edge))
             (-> m

@@ -46,7 +46,7 @@
   (ref
     {:root-element   nil    ; not a pointer
      :init-bad-queue []
-     :boundary-set   #{}})) ; set of boundary edges. TODO: sorted in C version.
+     :boundary-set   #{}})) ; set of boundary edges
 
 (defn insert-element [mesh element edge-map]
   "Insert `element` in `mesh`. This:
