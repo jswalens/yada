@@ -38,7 +38,7 @@
           encroached-edge-index
             (if (some? obtuse-angle-index)
               (mod (+ obtuse-angle-index 1) 3))]
-      {:skinny?         (some #(< % options/angle-constraint) angles)
+      {:skinny?         (some #(< % @options/angle-constraint) angles)
        :encroached-edge encroached-edge-index
        :min-angle       (first (sort angles))})
     {:skinny? false :encroached-edge nil :min-angle 180.0}))

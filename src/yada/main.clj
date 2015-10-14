@@ -7,11 +7,6 @@
             [yada.region :as region]
             [yada.mesh :as mesh]))
 
-(defn- parse-args [args]
-  {:angle-constraint 20.0
-   :input-prefix     "inputs/spiral.2"
-   :num-thread       1})
-
 (defn- initialize-work [mesh]
   ;(mesh/shuffle-bad mesh) - Don't do this, to get deterministic results
   (let [queue (priority-queue/create element/priority-queue-compare)]
@@ -42,11 +37,10 @@
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
   (let [params
-          (parse-args args)
-        _ (println "Angle constraint =" (:angle-constraint params))
+          (options/set-args args)
         _ (println "Reading input...")
         {mesh :mesh init-num-element :n-element}
-          (mesh/read (:input-prefix params))
+          (mesh/read (:input params))
         _ (println "done.")
         work-queue ; This is a heap in the C version
           (initialize-work mesh)
