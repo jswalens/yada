@@ -1,7 +1,6 @@
 (ns yada.main
   (:gen-class)
-  (:require [random]
-            [priority-queue]
+  (:require [priority-queue]
             [yada.options :as options :refer [log error]]
             [yada.element :as element]
             [yada.region :as region]

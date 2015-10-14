@@ -1,7 +1,6 @@
 (ns yada.mesh
   (:refer-clojure :exclude [read])
   (:require [clojure.string]
-            [random]
             [yada.options :as options :refer [log error]]
             [yada.element :as element]))
 
