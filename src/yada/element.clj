@@ -132,8 +132,7 @@
                         ; nil if there is no encroached edge. The encroached edge
                         ; is the one opposite the obtuse angle of the triangle.
        :skinny?         skinny?
-       :neighbors       [] ; list of refs to neighboring elements; TODO: use
-                        ; element/list-compare to order
+       :neighbors       #{}       ; refs to neighboring elements
        :garbage?        false
        :referenced?     false}))) ; TODO: we don't need this in Clojure as it's GC'd, I think
 
@@ -190,10 +189,22 @@
     (alter element assoc :garbage? status)))
 
 (defn add-neighbor [element neighbor]
-  "Note: when calling (add-neighbor a b), don't forget to call
-  (add-neighbor b a) as well."
+  "Add `neighbor` to `element`.
+
+  Note: when calling `(add-neighbor a b)`, don't forget to call
+  `(add-neighbor b a)` as well."
   (dosync
     (alter element update-in [:neighbors] conj neighbor)))
+
+(defn remove-neighbor [element neighbor]
+  "Remove `neighbor` for this `element`.
+
+  Note: when calling `(remove-neighbor a b)`, don't forget to call
+  `(remove-neighbor b a)` as well."
+  (dosync
+    (when (not (.contains (:neighbors @element) neighbor))
+      (println "ERROR: trying to remove a neighbor that doesn't exist"))
+    (alter element update-in [:neighbors] disj neighbor)))
 
 (defn get-common-edge [element-a element-b]
   (first

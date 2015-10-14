@@ -6,14 +6,21 @@
 ;(def log println)
 (defn log [& _] nil)
 
+(defn- reduce-all [f a l]
+  (doall (reduce f a l)))
+
 (defn retriangulate [element mesh visited borders edge-map]
   "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
           (element/get-new-point element)
-        _ ; Remove the old triangles
-          (doseq [v visited]
-            (log "Removing" (element/element->str v))
-            (mesh/remove-element mesh v))
+        ; Remove the old triangles
+        edge-map
+          (reduce-all
+            (fn [edge-map v]
+              (mesh/remove-element mesh v)
+              (mesh/remove-element-from-edge-map edge-map v))
+            edge-map
+            visited)
         ; If segment is encroached, split it in half
         segment-encroached?
           (= (element/get-num-edge element) 1)
@@ -36,13 +43,11 @@
             #(element/alloc [center-coordinate (:first %) (:second %)])
             borders)
         _
-          (doall
-            (reduce
-              (fn [edge-map after]
-                (log "Inserting" (element/element->str after))
-                (mesh/insert-element mesh after edge-map))
-              edge-map
-              after-elements))
+          (reduce-all
+            (fn [edge-map after]
+              (mesh/insert-element mesh after edge-map))
+            edge-map
+            after-elements)
         new-bad-elements
           (filter element/is-bad? after-elements)]
     (log "Removed" (count visited) "visited, added"
@@ -54,12 +59,19 @@
        (count borders))
      new-bad-elements]))
 
+(defn- elements->str [elements]
+  (->> elements
+    (map element/element->str)
+    (clojure.string/join "\n")))
+
 (defn- visit-neighbors [current center-element visited borders edge-map]
   (let [neighbors         (:neighbors @current)
         boundary?         (= (element/get-num-edge center-element) 1)
         center-coordinate (element/get-new-point center-element)]
-    (reduce
+    (log "Visiting neighbors...")
+    (reduce-all
       (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
+        (log "Visiting neighbor" (element/element->str neighbor))
         ;TODO: (element/is-garbage? neighbor) ; so we can detect conflicts
         (if (element/is-in-circum-circle? neighbor center-coordinate)
           ; This element is part of the region:
@@ -73,9 +85,11 @@
           ; Save its info for retriangulation.
           (let [border-edge (element/get-common-edge @neighbor @current)]
             ; TODO: if no border edge: tx restart - can this happen in Clojure's STM?
+            (when (.contains borders border-edge)
+              (println "ERROR: duplicate in borders" border-edge))
             (-> m
               (update-in [:borders] conj border-edge)
-              (update-in [:edge-map border-edge] conj neighbor)))))
+              (update-in [:edge-map] #(mesh/put-in-edge-map-if-empty % border-edge neighbor))))))
       {:encroached nil :to-expand [] :borders borders :edge-map edge-map}
       (remove #(.contains visited %) neighbors))))
 
@@ -83,21 +97,23 @@
   "Returns either `{:encroached encroached-neighbor}` or
   `{:encroached nil :visited visited :borders borders :edge-map edge-map}`."
   (loop [expand-queue [center-element]
-         visited      []
-         borders      []
+         visited      #{}
+         borders      #{}
          edge-map     {}]
     (if-let [current (first expand-queue)]
-      (let [new-visited (conj visited current)
-            {:keys [encroached to-expand borders edge-map]}
-              (visit-neighbors current center-element new-visited borders
-                edge-map)]
-        (if encroached
-          {:encroached encroached}
-          (recur
-            (into (rest expand-queue) to-expand) ; will never have duplicates
-            new-visited
-            borders 
-            edge-map)))
+      (if (contains? visited current)
+        (recur (rest expand-queue) visited borders edge-map)
+        (let [new-visited (conj visited current)
+              {:keys [encroached to-expand borders edge-map]}
+                (visit-neighbors current center-element new-visited borders
+                  edge-map)]
+          (if encroached
+            {:encroached encroached}
+            (recur
+              (into (rest expand-queue) to-expand) ; will never have duplicates
+              new-visited
+              borders
+              edge-map))))
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
 (defn- refine-helper [element mesh]

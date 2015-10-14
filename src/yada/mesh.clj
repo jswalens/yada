@@ -4,10 +4,45 @@
             [random]
             [yada.element :as element]))
 
+;(def log println)
+(defn log [& _] nil)
+
 (defmacro for-all [seq-exprs body-expr]
   `(doall
     (for ~seq-exprs
       ~body-expr)))
+
+(defn put-in-edge-map [edge-map edge element]
+  "In `edge-map`, say that `element` has `edge`. Checks whether there's at most
+  two elements per edge: there cannot be more than two triangles that share an
+  edge."
+  (let [existing (get edge-map edge #{})]
+    (if (contains? existing element)
+      ; already present: OK
+      edge-map
+      (if (<= (count existing) 2)
+        ; first two unique elements: OK
+        (assoc edge-map edge (conj existing element))
+        (do ; edge cannot be shared by more than two distinct elements
+          (println "ERROR: more than two distinct elements for edge" edge
+            "in edge-map! Contains"
+            (str/join "; " (map element/element->str (get edge-map edge)))
+            "; and adding" (element/element->str element))
+          edge-map)))))
+
+(defn put-in-edge-map-if-empty [edge-map edge element]
+  "In `edge-map`, say that `element` has `edge`; but only if there's no element
+  for `edge` yet."
+  (if (empty? (get edge-map edge #{}))
+    (assoc edge-map edge #{element})
+    edge-map))
+
+(defn remove-element-from-edge-map [edge-map element]
+  (reduce
+    (fn [edge-map edge]
+      (update-in edge-map [edge] disj element))
+    edge-map
+    (:edges @element)))
 
 (defn alloc []
   (ref
@@ -25,6 +60,7 @@
      become neighbors.
   4. Updates `edge-map` to map record this element's edges.
   Returns the updated `edge-map`."
+  (log "Inserting" (element/element->str element))
   (dosync
     ; 1. We assume the mesh is a fully connected graph, so we just need the
     ; pointer to one element (the "root") and we can reach all others. If there
@@ -40,19 +76,27 @@
       (when-not (.contains (:boundary-set @mesh) (element/get-edge element encroached-i))
         (element/clear-encroached element)))
     ; 3. Search edge-map for neighbors
-    (doseq [edge (:edges @element)]
-      (doseq [neighbor (get edge-map edge [])]
-        ; note: there can be at most one neighbor
+    (doseq [edge (:edges @element)
+            :let [neighbors (get edge-map edge #{})]]
+      ; note: there can be at most one neighbor along an edge
+      (when (> (count neighbors) 1)
+        (println "ERROR: element" (element/element->str element)
+          "has" (count neighbors) "neighbors along edge" edge
+          ", this should be at most one. They are:"
+          (str/join "; " (map element/element->str neighbors))))
+      (doseq [neighbor neighbors]
+        (log "Neighbor:" (element/element->str neighbor))
         (element/add-neighbor element neighbor)
         (element/add-neighbor neighbor element)))
     ; 4. Record this element's edges in edge-map.
     (reduce
-      (fn [edge-map edge] (update-in edge-map [edge] conj element))
+      (fn [edge-map edge] (put-in-edge-map edge-map edge element))
       edge-map
       (:edges @element))))
 
 (defn remove-element [mesh element]
   "Remove `element` from `mesh`."
+  (log "Removing" (element/element->str element))
   (dosync
     ; If this removes the root, we simply set it to nil. The next
     ; mesh/insert-element will select a new root, this is OK because every call
@@ -61,8 +105,8 @@
       (alter mesh assoc :root-element nil))
     ; Remove element from neighbors
     (doseq [neighbor (:neighbors @element)]
-      (alter neighbor update-in [:neighbors]
-        (fn [old-neighbors] (remove #(= element %) old-neighbors))))
+      (element/remove-neighbor element neighbor)
+      (element/remove-neighbor neighbor element))
     ; Set as garbage
     (element/set-is-garbage? element true)))
 
@@ -189,7 +233,7 @@
           ; it is contained by one element (up to now), or 3) maps an edge to
           ; nil, if it is contained by two elements (the max, used for detecting
           ; errors later).
-          ; In the Clojure version, edge-map maps edges to a list of elements.
+          ; In the Clojure version, edge-map maps edges to a set of elements.
           node-file (str file-name-prefix ".node")
           poly-file (str file-name-prefix ".poly")
           ele-file  (str file-name-prefix ".ele")
