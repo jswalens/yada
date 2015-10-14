@@ -4,7 +4,8 @@
             [yada.options :as options :refer [log error]]
             [yada.element :as element]
             [yada.region :as region]
-            [yada.mesh :as mesh]))
+            [yada.mesh :as mesh]
+            [taoensso.timbre.profiling :refer [profile p]]))
 
 (defn- initialize-work [mesh]
   ;(mesh/shuffle-bad mesh) - Don't do this, to get deterministic results
@@ -35,26 +36,30 @@
 
 (defn -main [& args]
   "Main function. `args` should be a list of command line arguments."
-  (let [params
-          (options/set-args args)
-        _ (println "Reading input...")
-        {mesh :mesh init-num-element :n-element}
-          (mesh/read (:input params))
-        _ (println "done.")
-        work-queue ; This is a heap in the C version
-          (initialize-work mesh)
-        _ (log "Work queue:\n" (element/elements->str (:elements @work-queue)))
-        init-num-bad-element
-          (count (:elements @work-queue))
-        _ (println "Initial number of mesh elements =" init-num-element)
-        _ (println "Initial number of bad elements  =" init-num-bad-element)
-        _ (println "Starting triangulation...")
-        {final-n-element :n-element n-processed :n-processed}
-          (time (process mesh init-num-element work-queue))
-          ; TODO: (time (thread/start (process mesh init-num-element work-queue)))
-        _ (println "Final mesh size                 =" final-n-element)
-        _ (println "Number of elements processed    =" n-processed)
-        success?
-          (mesh/check mesh final-n-element false)
-        _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
-    nil))
+  (let [params (options/set-args args)]
+    (profile :trace :all
+      (let [_ (println "Reading input...")
+            {mesh :mesh init-num-element :n-element}
+              (p :read-input (mesh/read (:input params)))
+            _ (println "done.")
+            work-queue ; This is a heap in the C version
+              (p :initialize-work (initialize-work mesh))
+            _ (log "Work queue:\n" (element/elements->str (:elements @work-queue)))
+            init-num-bad-element
+              (count (:elements @work-queue))
+            _ (println "Initial number of mesh elements =" init-num-element)
+            _ (println "Initial number of bad elements  =" init-num-bad-element)
+            _ (println "Starting triangulation...")
+            {final-n-element :n-element n-processed :n-processed}
+              (p :process (time (process mesh init-num-element work-queue)))
+              ; TODO: (time (thread/start (process mesh init-num-element work-queue)))
+            _ (println "Final mesh size                 =" final-n-element)
+            _ (println "Number of elements processed    =" n-processed)
+            success?
+              (p :check (mesh/check mesh final-n-element false))
+            _ (println "Final mesh is" (if success? "valid." "INVALID!"))]
+        nil)))
+  ; Eliminate one minute wait (see doc shutdown-agents)
+  ; shutdown-agents should be after profile, else RejectedExecutionException is
+  ; raised in timbre
+  (shutdown-agents))
