@@ -4,18 +4,18 @@
 (defn create [cmp]
   "Create an empty priority queue. Its elements will be ordered by comparing the
   result of `(key element)`."
-  (ref {:cmp cmp :elements []}))
+  {:cmp cmp :elements (ref [])})
 
 (defn push [queue val]
   "Push `val` in `queue`."
   (dosync
     (let [new-elements
-            (loop [old-elements (:elements @queue)
+            (loop [old-elements @(:elements queue)
                    new-elements []]
               (let [[fst & rst] old-elements]
                 (if (nil? fst)
                   (conj new-elements val)
-                  (case ((:cmp @queue) fst val)
+                  (case ((:cmp queue) fst val)
                     -1 ; old < val: continue
                       (recur rst (conj new-elements fst))
                      0 ; old == val: still continue, val will be inserted AFTER
@@ -23,7 +23,7 @@
                       (recur rst (conj new-elements fst))
                     +1 ; old > val: insert it and end the loop
                       (clojure.core/into (conj new-elements val) old-elements)))))]
-      (alter queue assoc :elements new-elements))))
+      (ref-set (:elements queue) new-elements))))
 
 (defn into [queue vals]
   "Push list of values `vals` into `queue`."
@@ -35,6 +35,6 @@
   "Pops element from `queue` and returns it.
   Assumes `queue` is a ref around the priority queue."
   (dosync
-    (when-let [e (first (:elements @queue))]
-      (alter queue update-in [:elements] rest)
+    (when-let [e (first @(:elements queue))]
+      (alter (:elements queue) rest)
       e)))

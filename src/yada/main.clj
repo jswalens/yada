@@ -45,9 +45,9 @@
             _ (println "done.")
             work-queue ; This is a heap in the C version
               (p :initialize-work (initialize-work mesh))
-            _ (log "Work queue:\n" (element/elements->str (:elements @work-queue)))
+            _ (log "Work queue:\n" (element/elements->str @(:elements work-queue)))
             init-num-bad-element
-              (count (:elements @work-queue))
+              (count @(:elements work-queue))
             _ (println "Initial number of mesh elements =" init-num-element)
             _ (println "Initial number of bad elements  =" init-num-bad-element)
             _ (println "Starting triangulation...")
