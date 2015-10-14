@@ -1,7 +1,6 @@
 (ns yada.main
   (:gen-class)
-  (:require [clojure.string]
-            [random]
+  (:require [random]
             [priority-queue]
             [yada.options :as options :refer [log error]]
             [yada.element :as element]
@@ -12,11 +11,6 @@
   {:angle-constraint 20.0
    :input-prefix     "inputs/spiral.2"
    :num-thread       1})
-
-(defn- elements->str [elements]
-  (->> elements
-    (map element/element->str)
-    (clojure.string/join "\n")))
 
 (defn- initialize-work [mesh]
   ;(mesh/shuffle-bad mesh) - Don't do this, to get deterministic results
@@ -39,7 +33,8 @@
         (if (element/is-garbage? element)
           (recur n-element i)
           (let [{n-added :n new-bad-elements :bad} (region/refine element mesh)]
-            (log "additional bad elements: " (elements->str new-bad-elements))
+            (log "additional bad elements: "
+              (element/elements->str new-bad-elements))
             (priority-queue/into work-queue new-bad-elements)
             (recur (+ n-element n-added) (inc i)))))
       {:n-element n-element :n-processed i})))
@@ -55,7 +50,7 @@
         _ (println "done.")
         work-queue ; This is a heap in the C version
           (initialize-work mesh)
-        _ (log "Work queue:\n" (elements->str (:elements @work-queue)))
+        _ (log "Work queue:\n" (element/elements->str (:elements @work-queue)))
         init-num-bad-element
           (count (:elements @work-queue))
         _ (println "Initial number of mesh elements =" init-num-element)

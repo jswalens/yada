@@ -57,11 +57,6 @@
        (count borders))
      new-bad-elements]))
 
-(defn- elements->str [elements]
-  (->> elements
-    (map element/element->str)
-    (clojure.string/join "\n")))
-
 (defn- visit-neighbors [current center-element visited borders edge-map]
   (let [neighbors         (:neighbors @current)
         boundary?         (= (element/get-num-edge center-element) 1)

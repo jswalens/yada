@@ -233,3 +233,6 @@
   (->> (:coordinates @element)
     (map coordinate/coordinate->str)
     (clojure.string/join " ")))
+
+(defn elements->str [elements]
+  (clojure.string/join "; " (map element->str elements)))

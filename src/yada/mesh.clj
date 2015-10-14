@@ -1,6 +1,6 @@
 (ns yada.mesh
   (:refer-clojure :exclude [read])
-  (:require [clojure.string :as str]
+  (:require [clojure.string]
             [random]
             [yada.options :as options :refer [log error]]
             [yada.element :as element]))
@@ -24,7 +24,7 @@
         (do ; edge cannot be shared by more than two distinct elements
           (error "more than two distinct elements for edge " edge
             " in edge-map! It contains: "
-            (str/join "; " (map element/element->str (get edge-map edge)))
+            (element/elements->str (get edge-map edge))
             "; and we're adding " (element/element->str element))
           edge-map)))))
 
@@ -80,7 +80,7 @@
       (when (> (count neighbors) 1)
         (error "element " (element/element->str element) " should have at most "
           "one neighbor along edge " edge ", but it has " (count neighbors) ": "
-          (str/join "; " (map element/element->str neighbors))))
+          (element/elements->str neighbors)))
       (doseq [neighbor neighbors]
         (log "Neighbor: " (element/element->str neighbor))
         (element/add-neighbor element neighbor)
@@ -134,7 +134,7 @@
 
 (defn- split [line]
   "Split `line` on spaces."
-  (str/split line #" "))
+  (clojure.string/split line #" "))
 
 (defn- str->int [s]
   (Integer/parseInt s))
