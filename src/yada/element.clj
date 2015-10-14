@@ -1,6 +1,6 @@
 (ns yada.element
   (:require [clojure.string]
-            [yada.options :as options]
+            [yada.options :as options :refer [log error]]
             [yada.coordinate :as coordinate]))
 
 (defn- min-index [cmp lst]
@@ -68,7 +68,7 @@
             ry       (+ ay (/ num_y denom))]
         {:x rx
          :y ry})
-    (println "ERROR: when allocating an element, it should have two or three coordinates.")))
+    (error "when allocating an element, it should have two or three coordinates.")))
 
 (defn- calculate-circumcircle [coordinates]
   (let [circum-center (calculate-circumcenter coordinates)]
@@ -107,7 +107,7 @@
   (let [n-edge (case (count coordinates)
                  2 1
                  3 3
-                 (println "ERROR: expected two or three coordinates"))]
+                 (error "expected two or three coordinates"))]
     (collect-maps
       (map #(get-edge-midpoint-radius coordinates %) (range n-edge)))))
 
@@ -203,7 +203,7 @@
   `(remove-neighbor b a)` as well."
   (dosync
     (when (not (.contains (:neighbors @element) neighbor))
-      (println "ERROR: trying to remove a neighbor that doesn't exist"))
+      (error "trying to remove a neighbor that doesn't exist"))
     (alter element update-in [:neighbors] disj neighbor)))
 
 (defn get-common-edge [element-a element-b]

@@ -1,10 +1,8 @@
 (ns yada.region
   (:require [priority-queue]
+            [yada.options :as options :refer [log error]]
             [yada.element :as element]
             [yada.mesh :as mesh]))
-
-;(def log println)
-(defn log [& _] nil)
 
 (defn- reduce-all [f a l]
   (doall (reduce f a l)))
@@ -50,9 +48,9 @@
             after-elements)
         new-bad-elements
           (filter element/is-bad? after-elements)]
-    (log "Removed" (count visited) "visited, added"
-      (if segment-encroached? 2 0) "because encroached?, added" (count borders)
-      "borders")
+    (log "Removed " (count visited) " visited, added "
+      (if segment-encroached? 2 0) " because encroached?, added "
+      (count borders) " borders.")
     [(+
        (- (count visited))
        (if segment-encroached? 2 0)
@@ -71,7 +69,7 @@
     (log "Visiting neighbors...")
     (reduce-all
       (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
-        (log "Visiting neighbor" (element/element->str neighbor))
+        (log "Visiting neighbor " (element/element->str neighbor))
         ;TODO: (element/is-garbage? neighbor) ; so we can detect conflicts
         (if (element/is-in-circum-circle? neighbor center-coordinate)
           ; This element is part of the region:
@@ -86,7 +84,7 @@
           (let [border-edge (element/get-common-edge @neighbor @current)]
             ; TODO: if no border edge: tx restart - can this happen in Clojure's STM?
             (when (.contains borders border-edge)
-              (println "ERROR: duplicate in borders" border-edge))
+              (error "duplicate in borders: " border-edge))
             (-> m
               (update-in [:borders] conj border-edge)
               (update-in [:edge-map] #(mesh/put-in-edge-map-if-empty % border-edge neighbor))))))

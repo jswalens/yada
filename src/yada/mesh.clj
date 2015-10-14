@@ -2,10 +2,8 @@
   (:refer-clojure :exclude [read])
   (:require [clojure.string :as str]
             [random]
+            [yada.options :as options :refer [log error]]
             [yada.element :as element]))
-
-;(def log println)
-(defn log [& _] nil)
 
 (defmacro for-all [seq-exprs body-expr]
   `(doall
@@ -24,10 +22,10 @@
         ; first two unique elements: OK
         (assoc edge-map edge (conj existing element))
         (do ; edge cannot be shared by more than two distinct elements
-          (println "ERROR: more than two distinct elements for edge" edge
-            "in edge-map! Contains"
+          (error "more than two distinct elements for edge " edge
+            " in edge-map! It contains: "
             (str/join "; " (map element/element->str (get edge-map edge)))
-            "; and adding" (element/element->str element))
+            "; and we're adding " (element/element->str element))
           edge-map)))))
 
 (defn put-in-edge-map-if-empty [edge-map edge element]
@@ -60,7 +58,7 @@
      become neighbors.
   4. Updates `edge-map` to map record this element's edges.
   Returns the updated `edge-map`."
-  (log "Inserting" (element/element->str element))
+  (log "Inserting " (element/element->str element))
   (dosync
     ; 1. We assume the mesh is a fully connected graph, so we just need the
     ; pointer to one element (the "root") and we can reach all others. If there
@@ -80,12 +78,11 @@
             :let [neighbors (get edge-map edge #{})]]
       ; note: there can be at most one neighbor along an edge
       (when (> (count neighbors) 1)
-        (println "ERROR: element" (element/element->str element)
-          "has" (count neighbors) "neighbors along edge" edge
-          ", this should be at most one. They are:"
+        (error "element " (element/element->str element) " should have at most "
+          "one neighbor along edge " edge ", but it has " (count neighbors) ": "
           (str/join "; " (map element/element->str neighbors))))
       (doseq [neighbor neighbors]
-        (log "Neighbor:" (element/element->str neighbor))
+        (log "Neighbor: " (element/element->str neighbor))
         (element/add-neighbor element neighbor)
         (element/add-neighbor neighbor element)))
     ; 4. Record this element's edges in edge-map.
@@ -96,7 +93,7 @@
 
 (defn remove-element [mesh element]
   "Remove `element` from `mesh`."
-  (log "Removing" (element/element->str element))
+  (log "Removing " (element/element->str element))
   (dosync
     ; If this removes the root, we simply set it to nil. The next
     ; mesh/insert-element will select a new root, this is OK because every call
@@ -155,8 +152,8 @@
     (map-indexed (fn [i w] ((nth conversion-fns i) w)))))
 
 (defn- validate-coordinate [x n-coordinate]
-  (when-not (>= x 0)            (println "ERROR: coordinate should be >= 0"))
-  (when-not (<= x n-coordinate) (println "ERROR: coordinate should be <= max")))
+  (when-not (>= x 0)            (error "coordinate should be >= 0"))
+  (when-not (<= x n-coordinate) (error "coordinate should be <= max")))
 
 (defn- read-node [file-name]
   "Note: the C version numbers coordinates from 1 to n, we go from 0 to n-1."
@@ -164,7 +161,7 @@
     (let [lines                       (line-seq f)
           [n-coordinate n-dimension] (parse-line (first lines) str->int str->int)]
       (when-not (= n-dimension 2)
-        (println "ERROR: number of dimensions in node file must be 2-D"))
+        (error "number of dimensions in node file must be 2-D"))
       (for-all [line (take n-coordinate (rest lines))]
         ; FIXME: (take n-coordinate ...) doesn't work correctly with comments
         (when-not (comment? line)
@@ -178,9 +175,9 @@
           [n-boundaries]        (parse-line (second lines) str->int)
           n-coordinate          (count coordinates)]
       (when-not (= n-entry 0)
-        (println "ERROR: number of entries in poly file must be 0: .node file used for vertices"))
+        (error "number of entries in poly file must be 0: .node file used for vertices"))
       (when-not (= n-dimension 2)
-        (println "ERROR: number of dimensions in poly file must be 2-D: must be edge"))
+        (error "number of dimensions in poly file must be 2-D: must be edge"))
       {:edge-map
         (reduce
           (fn [edge-map line]
@@ -203,7 +200,7 @@
           [n-triangle n-dimension] (parse-line (first lines) str->int str->int)
           n-coordinate             (count coordinates)]
       (when-not (= n-dimension 3)
-        (println "ERROR: number of dimensions in ele file must be 3-D: must be triangle"))
+        (error "number of dimensions in ele file must be 3-D: must be triangle"))
       {:edge-map
         (reduce
           (fn [edge-map line]
@@ -262,7 +259,7 @@
 
 (defn check [mesh expected-n-element ongoing?]
   (when (nil? (:root-element @mesh))
-    (println "ERROR: root element should not be nil."))
+    (error "root element should not be nil"))
   ; Breadth-first search
   (let [[n-element n-bad-triangle]
           (loop [queue          [(:root-element @mesh)]
@@ -290,10 +287,10 @@
     (println "Number of elements      =" n-element)
     (println "Number of bad triangles =" n-bad-triangle)
     (when (not= n-element expected-n-element)
-      (println (str "ERROR: number of elements actually in mesh (" n-element
-        ") != number of elements reportedly in mesh (" expected-n-element ").")))
+      (error "number of elements actually in mesh (" n-element
+        ") != number of elements reportedly in mesh (" expected-n-element ")"))
     (when (and (not ongoing?) (> n-bad-triangle 0))
-      (println "ERROR: number of bad triangles should be 0."))
+      (error "number of bad triangles should be 0"))
     (and (some? (:root-element @mesh))
          (= n-element expected-n-element)
          (or ongoing? (= n-bad-triangle 0)))))
