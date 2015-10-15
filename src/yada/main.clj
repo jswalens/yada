@@ -22,7 +22,7 @@
   (loop [n-element init-n-element
          i         0]
     ;(mesh/check mesh n-element true)
-    (if-let [element (p :pop (priority-queue/pop work-queue))]
+    (if-let [element (priority-queue/pop work-queue)]
       (do
         (log "Processing element " (element/element->str element))
         (if (element/is-garbage? element)
@@ -31,7 +31,7 @@
                   (p :refine (region/refine element mesh))]
             (log "additional bad elements: "
               (element/elements->str new-bad-elements))
-            (p :into (priority-queue/into work-queue new-bad-elements))
+            (priority-queue/into work-queue new-bad-elements)
             (recur (+ n-element n-added) (inc i)))))
       {:n-element n-element :n-processed i})))
 
