@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [read])
   (:require [clojure.string]
             [yada.options :as options :refer [log error for-all]]
-            [yada.element :as element]))
+            [yada.element :as element]
+            [taoensso.timbre.profiling :refer [p]]))
 
 (defn put-in-edge-map [edge-map edge element]
   "In `edge-map`, say that `element` has `edge`. Checks whether there's at most
@@ -230,11 +231,11 @@
           ele-file  (str file-name-prefix ".ele")
           ; TODO: check if files exist and abort if not?
           coordinates
-            (read-node node-file)
+            (p :read-node (read-node node-file))
           {:keys [edge-map n-boundaries]}
-            (read-poly poly-file mesh coordinates edge-map)
+            (p :read-poly (read-poly poly-file mesh coordinates edge-map))
           {:keys [edge-map n-triangles]}
-            (read-ele  ele-file  mesh coordinates edge-map)]
+            (p :read-ele  (read-ele  ele-file  mesh coordinates edge-map))]
       {:mesh      mesh
        :n-element (+ n-boundaries n-triangles)})))
 
