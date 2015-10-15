@@ -3,7 +3,8 @@
   (:require [clojure.string]
             [yada.options :as options :refer [log error for-all]]
             [yada.element :as element]
-            [taoensso.timbre.profiling :refer [p]]))
+            [taoensso.timbre.profiling :refer [p]])
+  (:import [java.util ArrayList]))
 
 (defn put-in-edge-map [edge-map edge element]
   "In `edge-map`, say that `element` has `edge`. Checks whether there's at most
@@ -154,14 +155,16 @@
   "Note: the C version numbers coordinates from 1 to n, we go from 0 to n-1."
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                       (line-seq f)
-          [n-coordinate n-dimension] (parse-line (first lines) str->int str->int)]
+          [n-coordinate n-dimension] (parse-line (first lines) str->int str->int)
+          coordinates (ArrayList. n-coordinate)]
       (when-not (= n-dimension 2)
         (error "number of dimensions in node file must be 2-D"))
-      (for-all [line (take n-coordinate (rest lines))]
+      (doseq [line (take n-coordinate (rest lines))]
         ; FIXME: (take n-coordinate ...) doesn't work correctly with comments
         (when-not (comment? line)
           (let [[_id x y] (parse-line line str->int str->double str->double)]
-            {:x x :y y}))))))
+            (.add coordinates {:x x :y y}))))
+      coordinates)))
 
 (defn- read-poly [file-name mesh coordinates edge-map]
   (with-open [f (clojure.java.io/reader file-name)]
