@@ -9,6 +9,11 @@
 
 (defn error [& args] (apply println "ERROR:" args))
 
+(defmacro for-all [seq-exprs body-expr]
+  `(doall
+    (for ~seq-exprs
+      ~body-expr)))
+
 (def cli-params
   [["-a" "--angle FLT"   "Min [a]ngle constraint"
     :default 20.0

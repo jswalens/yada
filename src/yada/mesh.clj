@@ -1,13 +1,8 @@
 (ns yada.mesh
   (:refer-clojure :exclude [read])
   (:require [clojure.string]
-            [yada.options :as options :refer [log error]]
+            [yada.options :as options :refer [log error for-all]]
             [yada.element :as element]))
-
-(defmacro for-all [seq-exprs body-expr]
-  `(doall
-    (for ~seq-exprs
-      ~body-expr)))
 
 (defn put-in-edge-map [edge-map edge element]
   "In `edge-map`, say that `element` has `edge`. Checks whether there's at most
