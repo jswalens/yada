@@ -47,7 +47,7 @@
             edge-map
             after-elements)
         new-bad-elements
-          (filter element/is-bad? after-elements)]
+          (filter element/bad? after-elements)]
     (log "Removed " (count visited) " visited, added "
       (if segment-encroached? 2 0) " because encroached?, added "
       (count borders) " borders.")
@@ -65,7 +65,7 @@
     (reduce-all
       (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
         (log "Visiting neighbor " (element/element->str neighbor))
-        (if (element/is-in-circum-circle? neighbor center-coordinate)
+        (if (element/in-circum-circle? neighbor center-coordinate)
           ; This element is part of the region:
           (if (and (not boundary?) (= (element/get-num-edge neighbor) 1))
             ; It encroaches on the mesh boundary, so we'll have to split it and

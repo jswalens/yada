@@ -78,5 +78,5 @@
           (mesh/read "inputs/633.2")
         n         (count (:init-bad-queue @mesh))
         first-bad (mesh/get-bad mesh)]
-    (is (element/is-bad? first-bad))
+    (is (element/bad? first-bad))
     (is (= (- n 1) (count (:init-bad-queue @mesh))))))

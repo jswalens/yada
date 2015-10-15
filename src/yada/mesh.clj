@@ -122,7 +122,7 @@
       ; Add to boundary set
       (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
     (let [edge-map (insert-element mesh element edge-map)]
-      (when (element/is-bad? element)
+      (when (element/bad? element)
         ; Add to initially bad elements
         (alter mesh update-in [:init-bad-queue] conj element))
       edge-map)))

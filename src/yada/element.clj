@@ -153,25 +153,25 @@
       -1
       0)))
 
-(defn is-in-circum-circle? [element coordinate]
+(defn in-circum-circle? [element coordinate]
   (dosync
     (<= (coordinate/distance coordinate (:circum-center @element))
         (:circum-radius @element))))
 
-(defn- is-encroached? [element]
+(defn- encroached? [element]
   (some? (:encroached-edge @element)))
 
 (defn clear-encroached [element]
   (dosync
     (alter element assoc :encroached-edge nil)))
 
-(defn is-skinny? [element]
+(defn skinny? [element]
   (:skinny? @element))
 
-(defn is-bad? [element]
+(defn bad? [element]
   "Does `element` need to be refined?"
   (dosync
-    (or (is-encroached? element) (is-skinny? element))))
+    (or (encroached? element) (skinny? element))))
 
 (defn garbage? [element]
   (:garbage? @element))
