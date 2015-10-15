@@ -11,7 +11,7 @@
         work-queue
           (@#'yada.main/initialize-work mesh)
         init-n-bad-element
-          (count (:elements @work-queue))
+          (count work-queue)
         _ (is (= expect-init-n-element init-n-element))
         _ (is (= expect-init-n-bad-element init-n-bad-element))
         {final-n-element :n-element n-processed :n-processed}
