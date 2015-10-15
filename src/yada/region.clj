@@ -65,7 +65,6 @@
     (reduce-all
       (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
         (log "Visiting neighbor " (element/element->str neighbor))
-        ;TODO: (element/is-garbage? neighbor) ; so we can detect conflicts
         (if (element/is-in-circum-circle? neighbor center-coordinate)
           ; This element is part of the region:
           (if (and (not boundary?) (= (element/get-num-edge neighbor) 1))
@@ -119,7 +118,7 @@
                    bad      []
                    visited  []
                    borders  []]
-              (if (element/is-garbage? element)
+              (if (element/garbage? element)
                 {:n-refine n-refine :bad bad :visited visited :borders borders}
                 (let [res (grow-region element)
                       encroached (:encroached res)]
@@ -133,11 +132,11 @@
                      :borders  (:borders res)
                      :edge-map (:edge-map res)}))))
           [n-retriangulate new-bad-elements]
-            (if (element/is-garbage? element)
+            (if (element/garbage? element)
               [0 nil]
               (retriangulate element mesh visited borders edge-map))]
       {:n       (+ n-refine n-retriangulate)
-       :bad     (into bad (remove element/is-garbage? new-bad-elements))
+       :bad     (into bad (remove element/garbage? new-bad-elements))
        :visited visited
        :borders borders})))
 

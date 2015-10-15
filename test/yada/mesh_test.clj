@@ -36,7 +36,7 @@
           (mesh/read "inputs/633.2")
         root      (:root-element @mesh)
         neighbors (:neighbors @root)]
-    (is (not (element/is-garbage? root)))
+    (is (not (element/garbage? root)))
     ; Sanity check: do all neighbors of root have root as neighbor?
     (doseq [n neighbors]
       (is (.contains (:neighbors @n) root)))
@@ -46,7 +46,7 @@
     ; * root is nil now
     (is (nil? (:root-element @mesh)))
     ; * root is garbage
-    (is (element/is-garbage? root))
+    (is (element/garbage? root))
     ; * root is no longer neighbor of its (old) neighbors
     (doseq [n neighbors]
       (is (not (.contains (:neighbors @n) root))))))

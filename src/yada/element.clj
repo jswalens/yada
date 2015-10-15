@@ -173,10 +173,10 @@
   (dosync
     (or (is-encroached? element) (is-skinny? element))))
 
-(defn is-garbage? [element]
+(defn garbage? [element]
   (:garbage? @element))
 
-(defn set-is-garbage? [element status]
+(defn set-garbage [element status]
   (dosync
     (alter element assoc :garbage? status)))
 

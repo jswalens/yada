@@ -104,7 +104,7 @@
       (element/remove-neighbor element neighbor)
       (element/remove-neighbor neighbor element))
     ; Set as garbage
-    (element/set-is-garbage? element true)))
+    (element/set-garbage element true)))
 
 (defn insert-boundary [mesh boundary]
   (dosync

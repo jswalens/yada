@@ -24,7 +24,7 @@
     (if-let [element (priority-queue/pop work-queue)]
       (do
         (log "Processing element " (element/element->str element))
-        (if (element/is-garbage? element)
+        (if (element/garbage? element)
           (recur n-element i)
           (let [{n-added :n new-bad-elements :bad}
                   (p :refine (region/refine element mesh))]
