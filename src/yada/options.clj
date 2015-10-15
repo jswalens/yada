@@ -7,7 +7,7 @@
 ;(defn log [& args] (println (apply str args)))
 (defmacro log [& args] nil)
 
-(defn error [& args] (apply println "ERROR:" args))
+(defn error [& args] (println (apply str "ERROR: " args)))
 
 (defmacro for-all [seq-exprs body-expr]
   `(doall
