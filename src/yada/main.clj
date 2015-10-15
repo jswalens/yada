@@ -36,7 +36,7 @@
 (defn- process [n-threads mesh work-queue init-n-element]
   (let [threads
           (for-all [i (range n-threads)]
-            (future (time (process-thread i mesh work-queue))))
+            (future (time (p :process-thread (process-thread i mesh work-queue)))))
         results
           (map deref threads)]
     (for-all [{:keys [id n-added n-processed]} results]
