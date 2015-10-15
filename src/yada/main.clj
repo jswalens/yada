@@ -13,7 +13,6 @@
     (loop []
       (if-let [element (mesh/get-bad mesh)]
         (do
-          (element/set-is-referenced? element true) ; TODO: why?
           (priority-queue/push queue element)
           (recur))
         queue))))

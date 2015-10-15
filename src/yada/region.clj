@@ -124,8 +124,7 @@
                 (let [res (grow-region element)
                       encroached (:encroached res)]
                   (if encroached
-                    (let [_ (element/set-is-referenced? encroached true)
-                          {:keys [n bad visited borders]}
+                    (let [{:keys [n bad visited borders]}
                             (refine-helper encroached mesh)]
                       (recur (+ n-refine n) bad visited borders))
                     {:n-refine n-refine
@@ -137,8 +136,6 @@
             (if (element/is-garbage? element)
               [0 nil]
               (retriangulate element mesh visited borders edge-map))]
-      (doseq [e new-bad-elements]
-        (element/set-is-referenced? e true))
       {:n       (+ n-refine n-retriangulate)
        :bad     (into bad (remove element/is-garbage? new-bad-elements))
        :visited visited
@@ -151,5 +148,4 @@
   Returns `{:n number of inserted elements :bad new (non-garbage) bad elements}`."
   (dosync
     (let [{n :n bad :bad} (refine-helper element mesh)]
-      (element/set-is-referenced? element false) ; element has been removed
       {:n n :bad bad})))

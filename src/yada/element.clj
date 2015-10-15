@@ -133,8 +133,7 @@
                         ; is the one opposite the obtuse angle of the triangle.
        :skinny?         skinny?
        :neighbors       #{}       ; refs to neighboring elements
-       :garbage?        false
-       :referenced?     false}))) ; TODO: we don't need this in Clojure as it's GC'd, I think
+       :garbage?        false})))
 
 (defn get-num-edge [element]
   "Returns the number of edges of `element`."
@@ -173,13 +172,6 @@
   "Does `element` need to be refined?"
   (dosync
     (or (is-encroached? element) (is-skinny? element))))
-
-(defn is-referenced? [element status]
-  (= (:referenced? @element) status))
-
-(defn set-is-referenced? [element status]
-  (dosync
-    (alter element assoc :referenced? status)))
 
 (defn is-garbage? [element]
   (:garbage? @element))

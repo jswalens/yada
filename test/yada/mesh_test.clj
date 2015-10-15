@@ -28,7 +28,6 @@
            (:edges root-element)))
     (is (= false                     (:skinny? root-element)))
     (is (= false                     (:garbage? root-element)))
-    (is (= false                     (:referenced? root-element)))
     (is (= (list {:x 570110.0 :y 431911.0} {:x 585233.0 :y 413468.0} {:x 584373.0 :y 414654.0})
            (:coordinates @(first (:init-bad-queue @mesh)))))))
 
