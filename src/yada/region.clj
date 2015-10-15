@@ -1,13 +1,11 @@
 (ns yada.region
   (:require [priority-queue]
-            [yada.options :as options :refer [log error]]
+            [yada.options :as options :refer [log error reduce-all]]
             [yada.element :as element]
-            [yada.mesh :as mesh]))
+            [yada.mesh :as mesh]
+            [taoensso.timbre.profiling :refer [p defnp]]))
 
-(defn- reduce-all [f a l]
-  (doall (reduce f a l)))
-
-(defn retriangulate [element mesh visited borders edge-map]
+(defnp retriangulate [element mesh visited borders edge-map]
   "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
           (element/get-new-point element)
@@ -86,7 +84,7 @@
       {:encroached nil :to-expand [] :borders borders :edge-map edge-map}
       (remove #(.contains visited %) neighbors))))
 
-(defn grow-region [center-element]
+(defnp grow-region [center-element]
   "Returns either `{:encroached encroached-neighbor}` or
   `{:encroached nil :visited visited :borders borders :edge-map edge-map}`."
   (loop [expand-queue [center-element]
@@ -109,7 +107,7 @@
               edge-map))))
       {:encroached nil :visited visited :borders borders :edge-map edge-map})))
 
-(defn- refine-helper [element mesh]
+(defnp refine-helper [element mesh]
   "Returns `{:n number of inserted elements :bad new bad elements
     :visited old visited elements :borders new border elements}`."
   (dosync
@@ -140,7 +138,7 @@
        :visited visited
        :borders borders})))
 
-(defn refine [element mesh]
+(defnp refine [element mesh]
   "Refine the region around element, i.e. remove element and replace it with
   something better.
 

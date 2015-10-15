@@ -14,6 +14,9 @@
     (for ~seq-exprs
       ~body-expr)))
 
+(defn reduce-all [f a l]
+  (doall (reduce f a l)))
+
 (def cli-params
   [["-a" "--angle FLT"   "Min [a]ngle constraint"
     :default 20.0
