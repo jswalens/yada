@@ -5,11 +5,11 @@
 
 (defn test-all [input-name expect-init-n-element expect-init-n-bad-element
   expect-final-n-element expect-n-processed]
-  (let [{mesh :mesh init-n-element :n-element}
+  (let [{mesh :mesh init-n-element :n bad-elements :bad}
           (mesh/read input-name)
         ; mesh tested in mesh_test
         work-queue
-          (@#'yada.main/initialize-work mesh)
+          (@#'yada.main/initialize-work bad-elements)
         init-n-bad-element
           (count work-queue)
         _ (is (= expect-init-n-element init-n-element))

@@ -13,11 +13,10 @@
 
 (deftest read-test
   ; Expect results from C version
-  (let [{:keys [n-element mesh]}
-          (mesh/read "inputs/633.2")
-        root-element @(:root-element @mesh)]
-    (is (= 1264 n-element))
-    (is (= 438  (count (:init-bad-queue @mesh))))
+  (let [{:keys [n mesh bad]} (mesh/read "inputs/633.2")
+        root-element         @(:root-element @mesh)]
+    (is (= 1264                      n))
+    (is (= 438                       (count bad)))
     (is (= (list {:x 570110.0 :y 431911.0} {:x 585233.0 :y 413468.0})
            (:coordinates root-element)))
     (is (= {:x 577671.5 :y 422689.5} (:circum-center root-element)))
@@ -29,13 +28,12 @@
     (is (= false                     (:skinny? root-element)))
     (is (= false                     (:garbage? root-element)))
     (is (= (list {:x 570110.0 :y 431911.0} {:x 585233.0 :y 413468.0} {:x 584373.0 :y 414654.0})
-           (:coordinates @(first (:init-bad-queue @mesh)))))))
+           (:coordinates @(first bad))))))
 
 (deftest remove-element-test
-  (let [{:keys [n-element mesh]}
-          (mesh/read "inputs/633.2")
-        root      (:root-element @mesh)
-        neighbors (:neighbors @root)]
+  (let [{:keys [mesh]} (mesh/read "inputs/633.2")
+        root           (:root-element @mesh)
+        neighbors      (:neighbors @root)]
     (is (not (element/garbage? root)))
     ; Sanity check: do all neighbors of root have root as neighbor?
     (doseq [n neighbors]
@@ -52,8 +50,7 @@
       (is (not (.contains (:neighbors @n) root))))))
 
 (deftest insert-remove-boundary-test
-  (let [{:keys [n-element mesh]}
-          (mesh/read "inputs/633.2")
+  (let [{:keys [mesh]}   (mesh/read "inputs/633.2")
         get-n-boundaries #(count (:boundary-set @mesh))
         root             (:root-element @mesh)
         init-boundaries  (get-n-boundaries)]
@@ -72,11 +69,3 @@
       (is (= init-boundaries (get-n-boundaries)))
       (mesh/remove-boundary mesh fst)
       (is (= (- init-boundaries 1) (get-n-boundaries))))))
-
-(deftest get-bad-test
-  (let [{:keys [n-element mesh]}
-          (mesh/read "inputs/633.2")
-        n         (count (:init-bad-queue @mesh))
-        first-bad (mesh/get-bad mesh)]
-    (is (element/bad? first-bad))
-    (is (= (- n 1) (count (:init-bad-queue @mesh))))))

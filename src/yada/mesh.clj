@@ -9,7 +9,6 @@
 (defn alloc []
   (ref
     {:root-element   nil    ; not a pointer
-     :init-bad-queue []
      :boundary-set   #{}})) ; set of boundary edges
 
 (defn- edge-map-get [edge-map edge]
@@ -93,7 +92,7 @@
         (log "Neighbor: " (element/element->str neighbor))
         (element/add-neighbor element neighbor)
         (element/add-neighbor neighbor element)))
-    ; 4. Record this element's edges in edge-map.
+    ; 4. Record this element's edges in edge-map and return edge-map.
     (edge-map-put-element edge-map element)))
 
 (defn remove-element [mesh element edge-map]
@@ -121,19 +120,6 @@
 (defn remove-boundary [mesh boundary]
   (dosync
     (alter mesh update-in [:boundary-set] disj boundary)))
-
-(defn- create-element [mesh coordinates edge-map]
-  "Creates element for `coordinates` and adds it to the `mesh`.
-  Returns updates `edge-map`."
-  (let [element (element/alloc coordinates)]
-    (when (= (count coordinates) 2)
-      ; Add to boundary set
-      (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
-    (let [edge-map (insert-element mesh element edge-map)]
-      (when (element/bad? element)
-        ; Add to initially bad elements
-        (alter mesh update-in [:init-bad-queue] conj element))
-      edge-map)))
 
 (defn- comment? [line]
   "Line is a comment if it starts with a #"
@@ -177,56 +163,74 @@
             (.add coordinates {:x x :y y}))))
       coordinates)))
 
+(defn- create-element [mesh coordinates edge-map]
+  "Creates element for `coordinates` and adds it to the `mesh`.
+  Returns {:element element :bad? bool :edge-map updated-edge-map}."
+  (let [element (element/alloc coordinates)]
+    (when (= (count coordinates) 2)
+      ; Add to boundary set
+      (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
+    (let [edge-map (insert-element mesh element edge-map)]
+      {:element element :bad? (element/bad? element) :edge-map edge-map})))
+
 (defn- read-poly [file-name mesh coordinates edge-map]
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                 (line-seq f)
           [n-entry n-dimension] (parse-line (first lines) str->int str->int)
           [n-boundaries]        (parse-line (second lines) str->int)
-          n-coordinate          (count coordinates)]
+          n-coordinate          (count coordinates)
+          {:keys [edge-map bad]}
+            (reduce
+              (fn [{:keys [edge-map bad] :as m} line]
+                (if (comment? line)
+                  m
+                  (let [[id a b] (parse-line line str->int str->int str->int)
+                        _ (validate-coordinate a n-coordinate)
+                        _ (validate-coordinate b n-coordinate)
+                        coordinates [(nth coordinates (dec a))
+                                     (nth coordinates (dec b))]
+                        {:keys [element bad? edge-map]}
+                          (create-element mesh coordinates edge-map)]
+                    {:edge-map edge-map
+                     :bad      (if bad? (conj bad element) bad)})))
+              {:edge-map edge-map :bad []}
+              (take n-boundaries (drop 2 lines)))]
       (when-not (= n-entry 0)
         (error "number of entries in poly file must be 0: .node file used for vertices"))
       (when-not (= n-dimension 2)
         (error "number of dimensions in poly file must be 2-D: must be edge"))
-      {:edge-map
-        (reduce
-          (fn [edge-map line]
-            (if (comment? line)
-              edge-map
-              (let [[id a b] (parse-line line str->int str->int str->int)]
-                (validate-coordinate a n-coordinate)
-                (validate-coordinate b n-coordinate)
-                (create-element mesh
-                  [(nth coordinates (dec a))
-                   (nth coordinates (dec b))]
-                  edge-map))))
-          edge-map
-          (take n-boundaries (drop 2 lines))) ; FIXME: doesn't work correctly with comments
-       :n-boundaries n-boundaries})))
+      {:n        n-boundaries
+       :bad      bad
+       :edge-map edge-map})))
 
 (defn- read-ele [file-name mesh coordinates edge-map]
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                    (line-seq f)
           [n-triangle n-dimension] (parse-line (first lines) str->int str->int)
-          n-coordinate             (count coordinates)]
+          n-coordinate             (count coordinates)
+          {:keys [edge-map bad]}
+            (reduce
+              (fn [{:keys [edge-map bad] :as m} line]
+                (if (comment? line)
+                  m
+                  (let [[id a b c] (parse-line line str->int str->int str->int str->int)
+                        _ (validate-coordinate a n-coordinate)
+                        _ (validate-coordinate b n-coordinate)
+                        _ (validate-coordinate c n-coordinate)
+                        coordinates [(nth coordinates (dec a))
+                                     (nth coordinates (dec b))
+                                     (nth coordinates (dec c))]
+                        {:keys [element bad? edge-map]}
+                          (create-element mesh coordinates edge-map)]
+                    {:edge-map edge-map
+                     :bad      (if bad? (conj bad element) bad)})))
+              {:edge-map edge-map :bad []}
+              (take n-triangle (rest lines)))]
       (when-not (= n-dimension 3)
         (error "number of dimensions in ele file must be 3-D: must be triangle"))
-      {:edge-map
-        (reduce
-          (fn [edge-map line]
-            (if (comment? line)
-              edge-map
-              (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
-                (validate-coordinate a n-coordinate)
-                (validate-coordinate b n-coordinate)
-                (validate-coordinate c n-coordinate)
-                (create-element mesh
-                  [(nth coordinates (dec a))
-                   (nth coordinates (dec b))
-                   (nth coordinates (dec c))]
-                  edge-map))))
-          edge-map
-          (take n-triangle (rest lines))) ; FIXME: doesn't work correctly with comments
-       :n-triangles n-triangle})))
+      {:n        n-triangle
+       :bad      bad
+       :edge-map edge-map})))
 
 (defn read [file-name-prefix]
   (dosync
@@ -246,25 +250,13 @@
           ; TODO: check if files exist and abort if not?
           coordinates
             (p :read-node (read-node node-file))
-          {:keys [edge-map n-boundaries]}
+          {n-boundaries :n bad-boundaries :bad edge-map :edge-map}
             (p :read-poly (read-poly poly-file mesh coordinates edge-map))
-          {:keys [edge-map n-triangles]}
+          {n-triangles  :n bad-triangles  :bad edge-map :edge-map}
             (p :read-ele  (read-ele  ele-file  mesh coordinates edge-map))]
-      {:mesh      mesh
-       :n-element (+ n-boundaries n-triangles)})))
-
-(defn get-bad [mesh]
-  "Pop a bad element from the bad queue."
-  (dosync
-    (let [bad (first (:init-bad-queue @mesh))]
-      (when (some? bad)
-        (alter mesh update-in [:init-bad-queue] rest))
-      bad)))
-
-(defn shuffle-bad [mesh]
-  "Shuffle the bad queue."
-  (dosync
-    (alter mesh update-in [:init-bad-queue] shuffle)))
+      {:mesh mesh
+       :n    (+ n-boundaries n-triangles)
+       :bad  (into bad-triangles bad-boundaries)})))
 
 (defn check [mesh expected-n-element ongoing?]
   (when (nil? (:root-element @mesh))

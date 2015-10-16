@@ -7,15 +7,11 @@
             [yada.mesh :as mesh]
             [taoensso.timbre.profiling :refer [profile p]]))
 
-(defn- initialize-work [mesh]
-  ;(mesh/shuffle-bad mesh) - Don't do this, to get deterministic results
+(defn- initialize-work [bad-elements]
+  ;(shuffle bad-elements) - Don't do this, to get deterministic results
   (let [queue (priority-queue/create element/priority-queue-compare)]
-    (loop []
-      (if-let [element (mesh/get-bad mesh)]
-        (do
-          (priority-queue/push queue element)
-          (recur))
-        queue))))
+    (priority-queue/into queue bad-elements)
+    queue))
 
 (defn- process-thread [id mesh work-queue]
   (loop [n-added 0
@@ -51,14 +47,14 @@
   (let [params (options/set-args args)]
     (profile :trace :all
       (let [_ (println "Reading input...")
-            {mesh :mesh init-n-element :n-element}
+            {mesh :mesh init-n-element :n bad-elements :bad}
               (p :read-input (mesh/read (:input params)))
             _ (println "done.")
             work-queue ; This is a heap in the C version
-              (p :initialize-work (initialize-work mesh))
-            _ (log "Work queue:\n" (element/elements->str (:elements work-queue)))
+              (p :initialize-work (initialize-work bad-elements))
+            _ (log "Work queue:\n" (element/elements->str work-queue))
             init-n-bad-element
-              (count (:elements work-queue))
+              (count work-queue)
             _ (println "Initial number of mesh elements =" init-n-element)
             _ (println "Initial number of bad elements  =" init-n-bad-element)
             _ (println "Starting triangulation...")
