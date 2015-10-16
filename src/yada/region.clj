@@ -11,27 +11,29 @@
           (element/get-new-point element)
         ; Remove the old triangles
         edge-map
-          (reduce-all
-            (fn [edge-map v]
-              (mesh/remove-element mesh v)
-              (mesh/remove-element-from-edge-map edge-map v))
-            edge-map
-            visited)
+          (p :retriangulate-remove
+            (reduce-all
+              (fn [edge-map v]
+                (mesh/remove-element mesh v)
+                (mesh/remove-element-from-edge-map edge-map v))
+              edge-map
+              visited))
         ; If segment is encroached, split it in half
         segment-encroached?
           (= (element/get-num-edge element) 1)
         edge-map
-          (if (= (element/get-num-edge element) 1)
-            (let [edge (element/get-edge element 0)
-                  a    (element/alloc [center-coordinate (:first edge)])
-                  b    (element/alloc [center-coordinate (:second edge)])
-                  edge-map (mesh/insert-element mesh a edge-map)
-                  edge-map (mesh/insert-element mesh b edge-map)
-                  _    (mesh/remove-boundary mesh (element/get-edge element 0))
-                  _    (mesh/insert-boundary mesh (element/get-edge a 0))
-                  _    (mesh/insert-boundary mesh (element/get-edge b 0))]
-              edge-map)
-            edge-map)
+          (p :retriangulate-split
+            (if (= (element/get-num-edge element) 1)
+              (let [edge (element/get-edge element 0)
+                    a    (element/alloc [center-coordinate (:first edge)])
+                    b    (element/alloc [center-coordinate (:second edge)])
+                    edge-map (mesh/insert-element mesh a edge-map)
+                    edge-map (mesh/insert-element mesh b edge-map)
+                    _    (mesh/remove-boundary mesh (element/get-edge element 0))
+                    _    (mesh/insert-boundary mesh (element/get-edge a 0))
+                    _    (mesh/insert-boundary mesh (element/get-edge b 0))]
+                edge-map)
+              edge-map))
         ; Insert the new triangles. These are constructed using the new point
         ; and the two points from the border segment.
         after-elements
@@ -39,11 +41,12 @@
             #(element/alloc [center-coordinate (:first %) (:second %)])
             borders)
         _
-          (reduce-all
-            (fn [edge-map after]
-              (mesh/insert-element mesh after edge-map))
-            edge-map
-            after-elements)
+          (p :retriangulate-insert
+            (reduce-all
+              (fn [edge-map after]
+                (mesh/insert-element mesh after edge-map))
+              edge-map
+              after-elements))
         new-bad-elements
           (filter element/bad? after-elements)]
     (log "Removed " (count visited) " visited, added "
@@ -55,7 +58,7 @@
        (count borders))
      new-bad-elements]))
 
-(defn- visit-neighbors [current center-element visited borders edge-map]
+(defnp visit-neighbors [current center-element visited borders edge-map]
   (let [neighbors         (:neighbors @current)
         boundary?         (= (element/get-num-edge center-element) 1)
         center-coordinate (element/get-new-point center-element)]
