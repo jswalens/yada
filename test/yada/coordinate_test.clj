@@ -1,4 +1,5 @@
 (ns yada.coordinate-test
+  (:refer-clojure :exclude [compare])
   (:require [clojure.test :refer :all]
             [yada.coordinate :refer :all]))
 

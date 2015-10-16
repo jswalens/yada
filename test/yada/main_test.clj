@@ -15,7 +15,7 @@
         _ (is (= expect-init-n-element init-n-element))
         _ (is (= expect-init-n-bad-element init-n-bad-element))
         {final-n-element :n-element n-processed :n-processed}
-          (@#'yada.main/process mesh init-n-element work-queue)
+          (@#'yada.main/process 1 mesh work-queue init-n-element)
         _ (is (= expect-final-n-element final-n-element))
         _ (is (= expect-n-processed n-processed))
         success?
