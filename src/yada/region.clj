@@ -72,7 +72,6 @@
             ; As far as I can see, this error is not possible in Clojure's STM.
             (when (.contains borders border-edge)
               (error "duplicate in borders: " border-edge))
-            (mesh/edge-map-put-if-empty mesh border-edge neighbor)
             (update-in m [:borders] conj border-edge))))
       {:encroached nil :to-expand [] :borders borders}
       (remove #(.contains visited %) neighbors))))

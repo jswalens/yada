@@ -41,14 +41,6 @@
             (element/elements->str (edge-map-get mesh edge))
             "; and we're adding " (element/element->str element)))))))
 
-(defn edge-map-put-if-empty [mesh edge element]
-  "Say that `element` has `edge` in the edge-map of `mesh`; but only if there's
-  no element for `edge` yet."
-  (dosync
-    (when (empty? (edge-map-get mesh edge))
-      (print "æ")
-      (alter mesh assoc-in [:edge-map edge] #{element}))))
-
 (defn- edge-map-put-element [mesh element]
   "Put the edges of `element` in the edge-map of `mesh`."
   (doseq [edge (:edges @element)]
