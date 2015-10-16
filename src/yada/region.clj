@@ -53,25 +53,30 @@
   (let [neighbors         (:neighbors @current)
         boundary?         (= (element/get-num-edge center-element) 1)
         center-coordinate (element/get-new-point center-element)
-        results
-          (for [neighbor (remove #(.contains visited %) neighbors)]
-            (if (element/in-circum-circle? neighbor center-coordinate)
-              ; This element is part of the region:
-              (if (and (not boundary?) (= (element/get-num-edge neighbor) 1))
-                ; It encroaches on the mesh boundary, so we'll have to split it and
-                ; restart:
-                {:encroached neighbor}
-                ; Continue breadth-first search:
-                {:to-expand neighbor})
-              ; This element is not part of the region, so it borders the region.
-              ; Save its info for retriangulation.
-              (let [border-edge (element/get-common-edge @neighbor @current)]
-                ; C version says here: if no border-edge found: restart the tx.
-                ; As far as I can see, this error is not possible in Clojure's STM.
-                {:border border-edge})))]
-    {:encroached  (->> results (map :encroached) (filter some?) (first))
-     :to-expand   (->> results (map :to-expand)  (filter some?))
-     :new-borders (->> results (map :border)     (filter some?))}))
+        new-neighbors     (remove #(.contains visited %) neighbors)
+        in-circum-circle  (filter #(element/in-circum-circle? % center-coordinate)
+                            new-neighbors)
+        encroached ; search for a neighbor that encroaches on the mesh boundary
+          (some
+            (fn [neighbor]
+              (when (and (not boundary?)
+                         (= (element/get-num-edge neighbor) 1))
+                neighbor))
+            in-circum-circle)]
+    (if encroached
+      ; we'll have to split the encroaching neighbor and restart
+      {:encroached encroached}
+      (let [borders
+              (->> new-neighbors
+                (remove #(element/in-circum-circle? % center-coordinate))
+                (map #(element/get-common-edge (deref %) @current)))]
+            ; C version says here: if no common edge found: restart the tx.
+            ; As far as I can see, this error is not possible in Clojure's STM.
+        {; continue breadth-first search with neighbors in circum-circle
+         :to-expand   in-circum-circle
+         ; for neighbors that are not part of the circum-circle: they border it,
+         ; so save their info for retriangulation
+         :new-borders borders}))))
 
 (defnp grow-region [mesh center-element]
   "Returns either `{:encroached encroached-neighbor}` or
