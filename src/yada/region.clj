@@ -5,35 +5,29 @@
             [yada.mesh :as mesh]
             [taoensso.timbre.profiling :refer [p defnp]]))
 
-(defnp retriangulate [element mesh visited borders edge-map]
+(defnp retriangulate [element mesh visited borders]
   "Returns [n-inserted new-bad-elements]."
   (let [center-coordinate
           (element/get-new-point element)
         ; Remove the old triangles
-        edge-map
+        _
           (p :retriangulate-remove
-            (reduce-all
-              (fn [edge-map v]
-                (mesh/remove-element mesh v)
-                (mesh/remove-element-from-edge-map edge-map v))
-              edge-map
-              visited))
+            (doseq [v visited]
+              (mesh/remove-element mesh v)))
         ; If segment is encroached, split it in half
         segment-encroached?
           (= (element/get-num-edge element) 1)
-        edge-map
+        _
           (p :retriangulate-split
-            (if (= (element/get-num-edge element) 1)
+            (when (= (element/get-num-edge element) 1)
               (let [edge (element/get-edge element 0)
                     a    (element/alloc [center-coordinate (:first edge)])
-                    b    (element/alloc [center-coordinate (:second edge)])
-                    edge-map (mesh/insert-element mesh a edge-map)
-                    edge-map (mesh/insert-element mesh b edge-map)
-                    _    (mesh/remove-boundary mesh (element/get-edge element 0))
-                    _    (mesh/insert-boundary mesh (element/get-edge a 0))
-                    _    (mesh/insert-boundary mesh (element/get-edge b 0))]
-                edge-map)
-              edge-map))
+                    b    (element/alloc [center-coordinate (:second edge)])]
+                (mesh/insert-element mesh a)
+                (mesh/insert-element mesh b)
+                (mesh/remove-boundary mesh (element/get-edge element 0))
+                (mesh/insert-boundary mesh (element/get-edge a 0))
+                (mesh/insert-boundary mesh (element/get-edge b 0)))))
         ; Insert the new triangles. These are constructed using the new point
         ; and the two points from the border segment.
         after-elements
@@ -42,11 +36,8 @@
             borders)
         _
           (p :retriangulate-insert
-            (reduce-all
-              (fn [edge-map after]
-                (mesh/insert-element mesh after edge-map))
-              edge-map
-              after-elements))
+            (doseq [after after-elements]
+              (mesh/insert-element mesh after)))
         new-bad-elements
           (filter element/bad? after-elements)]
     (log "Removed " (count visited) " visited, added "
@@ -58,13 +49,13 @@
        (count borders))
      new-bad-elements]))
 
-(defnp visit-neighbors [current center-element visited borders edge-map]
+(defnp visit-neighbors [mesh current center-element visited borders]
   (let [neighbors         (:neighbors @current)
         boundary?         (= (element/get-num-edge center-element) 1)
         center-coordinate (element/get-new-point center-element)]
     (log "Visiting neighbors...")
     (reduce-all
-      (fn [{:keys [encroached to-expand borders edge-map] :as m} neighbor]
+      (fn [{:keys [encroached to-expand borders] :as m} neighbor]
         (log "Visiting neighbor " (element/element->str neighbor))
         (if (element/in-circum-circle? neighbor center-coordinate)
           ; This element is part of the region:
@@ -81,47 +72,43 @@
             ; As far as I can see, this error is not possible in Clojure's STM.
             (when (.contains borders border-edge)
               (error "duplicate in borders: " border-edge))
-            (-> m
-              (update-in [:borders] conj border-edge)
-              (update-in [:edge-map] #(mesh/put-in-edge-map-if-empty % border-edge neighbor))))))
-      {:encroached nil :to-expand [] :borders borders :edge-map edge-map}
+            (mesh/edge-map-put-if-empty mesh border-edge neighbor)
+            (update-in m [:borders] conj border-edge))))
+      {:encroached nil :to-expand [] :borders borders}
       (remove #(.contains visited %) neighbors))))
 
-(defnp grow-region [center-element]
+(defnp grow-region [mesh center-element]
   "Returns either `{:encroached encroached-neighbor}` or
-  `{:encroached nil :visited visited :borders borders :edge-map edge-map}`."
+  `{:encroached nil :visited visited :borders borders}`."
   (loop [expand-queue [center-element]
          visited      #{}
-         borders      #{}
-         edge-map     {}]
+         borders      #{}]
     (if-let [current (first expand-queue)]
       (if (contains? visited current)
-        (recur (rest expand-queue) visited borders edge-map)
+        (recur (rest expand-queue) visited borders)
         (let [new-visited (conj visited current)
-              {:keys [encroached to-expand borders edge-map]}
-                (visit-neighbors current center-element new-visited borders
-                  edge-map)]
+              {:keys [encroached to-expand borders]}
+                (visit-neighbors mesh current center-element new-visited borders)]
           (if encroached
             {:encroached encroached}
             (recur
               (into (rest expand-queue) to-expand) ; will never have duplicates
               new-visited
-              borders
-              edge-map))))
-      {:encroached nil :visited visited :borders borders :edge-map edge-map})))
+              borders))))
+      {:encroached nil :visited visited :borders borders})))
 
 (defnp refine-helper [element mesh]
   "Returns `{:n number of inserted elements :bad new bad elements
     :visited old visited elements :borders new border elements}`."
   (dosync
-    (let [{:keys [n-refine bad visited borders edge-map]}
+    (let [{:keys [n-refine bad visited borders]}
             (loop [n-refine 0
                    bad      []
                    visited  []
                    borders  []]
               (if (element/garbage? element)
                 {:n-refine n-refine :bad bad :visited visited :borders borders}
-                (let [res (grow-region element)
+                (let [res (grow-region mesh element)
                       encroached (:encroached res)]
                   (if encroached
                     (let [{:keys [n bad visited borders]}
@@ -130,12 +117,11 @@
                     {:n-refine n-refine
                      :bad      bad
                      :visited  (:visited res)
-                     :borders  (:borders res)
-                     :edge-map (:edge-map res)}))))
+                     :borders  (:borders res)}))))
           [n-retriangulate new-bad-elements]
             (if (element/garbage? element)
               [0 nil]
-              (retriangulate element mesh visited borders edge-map))]
+              (retriangulate element mesh visited borders))]
       {:n       (+ n-refine n-retriangulate)
        :bad     (into bad (remove element/garbage? new-bad-elements))
        :visited visited
