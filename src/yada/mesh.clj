@@ -9,7 +9,6 @@
 (defn alloc []
   (ref
     {:root-element   nil    ; not a pointer
-     :init-bad-queue []
      :edge-map       {}
      ; edge-map maps edges to the elements that contain them.
      ; Each edge is contained by at least one and at most two elements.
@@ -98,7 +97,9 @@
         (element/add-neighbor element neighbor)
         (element/add-neighbor neighbor element)))
     ; 4. Record this element's edges in edge-map.
-    (edge-map-put-element mesh element)))
+    (edge-map-put-element mesh element)
+    ; Return element
+    element))
 
 (defn remove-element [mesh element]
   "Remove `element` from `mesh`."
@@ -125,17 +126,6 @@
 (defn remove-boundary [mesh boundary]
   (dosync
     (alter mesh update-in [:boundary-set] disj boundary)))
-
-(defn- create-element [mesh coordinates]
-  "Creates element for `coordinates` and adds it to the `mesh`."
-  (let [element (element/alloc coordinates)]
-    (when (= (count coordinates) 2)
-      ; Add to boundary set
-      (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
-    (insert-element mesh element)
-    (when (element/bad? element)
-      ; Add to initially bad elements
-      (alter mesh update-in [:init-bad-queue] conj element))))
 
 (defn- comment? [line]
   "Line is a comment if it starts with a #"
@@ -179,44 +169,60 @@
             (.add coordinates {:x x :y y}))))
       coordinates)))
 
+(defn- create-element [mesh coordinates]
+  "Creates element for `coordinates` and adds it to the `mesh`."
+  (let [element (element/alloc coordinates)]
+    (when (= (count coordinates) 2)
+      ; Add to boundary set
+      (alter mesh update-in [:boundary-set] conj (element/get-edge element 0)))
+    (insert-element mesh element)
+    ; Return element
+    element))
+
 (defn- read-poly [file-name mesh coordinates]
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                 (line-seq f)
           [n-entry n-dimension] (parse-line (first lines) str->int str->int)
           [n-boundaries]        (parse-line (second lines) str->int)
-          n-coordinate          (count coordinates)]
+          n-coordinate          (count coordinates)
+          elements
+            (for-all [line (take n-boundaries (drop 2 lines))]
+              (when-not (comment? line)
+                (let [[id a b] (parse-line line str->int str->int str->int)]
+                  (validate-coordinate a n-coordinate)
+                  (validate-coordinate b n-coordinate)
+                  (create-element mesh
+                    [(nth coordinates (dec a))
+                     (nth coordinates (dec b))]))))
+          bad-elements
+            (filter element/bad? elements)]
       (when-not (= n-entry 0)
         (error "number of entries in poly file must be 0: .node file used for vertices"))
       (when-not (= n-dimension 2)
         (error "number of dimensions in poly file must be 2-D: must be edge"))
-      (doseq [line (take n-boundaries (drop 2 lines))]
-        (when-not (comment? line)
-          (let [[id a b] (parse-line line str->int str->int str->int)]
-            (validate-coordinate a n-coordinate)
-            (validate-coordinate b n-coordinate)
-            (create-element mesh
-              [(nth coordinates (dec a))
-               (nth coordinates (dec b))]))))
-      n-boundaries)))
+      {:n n-boundaries :bad bad-elements})))
 
 (defn- read-ele [file-name mesh coordinates]
   (with-open [f (clojure.java.io/reader file-name)]
     (let [lines                    (line-seq f)
           [n-triangle n-dimension] (parse-line (first lines) str->int str->int)
-          n-coordinate             (count coordinates)]
+          n-coordinate             (count coordinates)
+          elements
+            (for-all [line (take n-triangle (rest lines))]
+              (when-not (comment? line)
+                (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
+                  (validate-coordinate a n-coordinate)
+                  (validate-coordinate b n-coordinate)
+                  (validate-coordinate c n-coordinate)
+                  (create-element mesh
+                    [(nth coordinates (dec a))
+                     (nth coordinates (dec b))
+                     (nth coordinates (dec c))]))))
+          bad-elements
+            (filter element/bad? elements)]
       (when-not (= n-dimension 3)
         (error "number of dimensions in ele file must be 3-D: must be triangle"))
-      (doseq [line (take n-triangle (rest lines))]
-        (when-not (comment? line)
-          (let [[id a b c] (parse-line line str->int str->int str->int str->int)]
-            (validate-coordinate a n-coordinate)
-            (validate-coordinate b n-coordinate)
-            (validate-coordinate c n-coordinate)
-            (create-element mesh
-              [(nth coordinates (dec a))
-               (nth coordinates (dec b))
-               (nth coordinates (dec c))]))))
-      n-triangle)))
+      {:n n-triangle :bad bad-elements})))
 
 (defn read [file-name-prefix]
   (dosync
@@ -227,25 +233,13 @@
           ; TODO: check if files exist and abort if not?
           coordinates
             (p :read-node (read-node node-file))
-          n-boundaries
+          {n-boundaries :n bad-boundaries :bad}
             (p :read-poly (read-poly poly-file mesh coordinates))
-          n-triangles
+          {n-triangles  :n bad-triangles  :bad}
             (p :read-ele  (read-ele  ele-file  mesh coordinates))]
-      {:mesh      mesh
-       :n-element (+ n-boundaries n-triangles)})))
-
-(defn get-bad [mesh]
-  "Pop a bad element from the bad queue."
-  (dosync
-    (let [bad (first (:init-bad-queue @mesh))]
-      (when (some? bad)
-        (alter mesh update-in [:init-bad-queue] rest))
-      bad)))
-
-(defn shuffle-bad [mesh]
-  "Shuffle the bad queue."
-  (dosync
-    (alter mesh update-in [:init-bad-queue] shuffle)))
+      {:mesh mesh
+       :n    (+ n-boundaries n-triangles)
+       :bad  (into bad-triangles bad-boundaries)})))
 
 (defn check [mesh expected-n-element ongoing?]
   (when (nil? (:root-element @mesh))
