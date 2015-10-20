@@ -105,7 +105,7 @@
               {:keys [encroached to-expand new-borders edge-map-updates]}
                 (visit-neighbors current center-element new-visited)
               new-edge-map
-                (reduce
+                (reduce ; lazy
                   (fn [edge-map [edge element]]
                     (mesh/edge-map-put-if-empty edge-map edge element))
                   edge-map
