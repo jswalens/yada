@@ -41,7 +41,7 @@
     (doseq [n neighbors]
       (is (.contains (:neighbors @n) root)))
     ; Remove root from mesh
-    (mesh/remove-element mesh root)
+    (mesh/remove-element mesh root {})
     ; We expect:
     ; * root is nil now
     (is (nil? (:root-element @mesh)))

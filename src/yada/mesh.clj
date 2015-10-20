@@ -6,11 +6,21 @@
             [taoensso.timbre.profiling :refer [p]])
   (:import [java.util ArrayList]))
 
-(defn put-in-edge-map [edge-map edge element]
+(defn alloc []
+  (ref
+    {:root-element   nil    ; not a pointer
+     :init-bad-queue []
+     :boundary-set   #{}})) ; set of boundary edges
+
+(defn- edge-map-get [edge-map edge]
+  "Find `edge` in `edge-map`."
+  (get edge-map edge #{}))
+
+(defn- edge-map-put [edge-map edge element]
   "In `edge-map`, say that `element` has `edge`. Checks whether there's at most
   two elements per edge: there cannot be more than two triangles that share an
-  edge."
-  (let [existing (get edge-map edge #{})]
+  edge. Returns updated edge-map."
+  (let [existing (edge-map-get edge-map edge)]
     (if (contains? existing element)
       ; already present: OK
       edge-map
@@ -20,29 +30,31 @@
         (do ; edge cannot be shared by more than two distinct elements
           (error "more than two distinct elements for edge " edge
             " in edge-map! It contains: "
-            (element/elements->str (get edge-map edge))
+            (element/elements->str (edge-map-get edge-map edge))
             "; and we're adding " (element/element->str element))
           edge-map)))))
 
-(defn put-in-edge-map-if-empty [edge-map edge element]
+(defn edge-map-put-if-empty [edge-map edge element]
   "In `edge-map`, say that `element` has `edge`; but only if there's no element
-  for `edge` yet."
+  for `edge` yet. Returns updated edge-map."
   (if (empty? (get edge-map edge #{}))
     (assoc edge-map edge #{element})
     edge-map))
 
-(defn remove-element-from-edge-map [edge-map element]
+(defn- edge-map-put-element [edge-map element]
+  "Put the edges of `element` in `edge-map`, returns the updated edge-map."
+  (reduce
+    (fn [edge-map edge] (edge-map-put edge-map edge element))
+    edge-map
+    (:edges @element)))
+
+(defn- edge-map-remove-element [edge-map element]
+  "Remove `element` from `edge-map`. Returns updated edge-map."
   (reduce
     (fn [edge-map edge]
       (update-in edge-map [edge] disj element))
     edge-map
     (:edges @element)))
-
-(defn alloc []
-  (ref
-    {:root-element   nil    ; not a pointer
-     :init-bad-queue []
-     :boundary-set   #{}})) ; set of boundary edges
 
 (defn insert-element [mesh element edge-map]
   "Insert `element` in `mesh`. This:
@@ -71,7 +83,7 @@
         (element/clear-encroached element)))
     ; 3. Search edge-map for neighbors
     (doseq [edge (:edges @element)
-            :let [neighbors (get edge-map edge #{})]]
+            :let [neighbors (edge-map-get edge-map edge)]]
       ; note: there can be at most one neighbor along an edge
       (when (> (count neighbors) 1)
         (error "element " (element/element->str element) " should have at most "
@@ -82,12 +94,9 @@
         (element/add-neighbor element neighbor)
         (element/add-neighbor neighbor element)))
     ; 4. Record this element's edges in edge-map.
-    (reduce
-      (fn [edge-map edge] (put-in-edge-map edge-map edge element))
-      edge-map
-      (:edges @element))))
+    (edge-map-put-element edge-map element)))
 
-(defn remove-element [mesh element]
+(defn remove-element [mesh element edge-map]
   "Remove `element` from `mesh`."
   (log "Removing " (element/element->str element))
   (dosync
@@ -101,7 +110,9 @@
       (element/remove-neighbor element neighbor)
       (element/remove-neighbor neighbor element))
     ; Set as garbage
-    (element/set-garbage element true)))
+    (element/set-garbage element true)
+    ; Remove element from edge-map
+    (edge-map-remove-element edge-map element)))
 
 (defn insert-boundary [mesh boundary]
   (dosync

@@ -14,8 +14,7 @@
           (p :retriangulate-remove
             (reduce-all
               (fn [edge-map v]
-                (mesh/remove-element mesh v)
-                (mesh/remove-element-from-edge-map edge-map v))
+                (mesh/remove-element mesh v edge-map))
               edge-map
               visited))
         ; If segment is encroached, split it in half
@@ -83,7 +82,7 @@
               (error "duplicate in borders: " border-edge))
             (-> m
               (update-in [:borders] conj border-edge)
-              (update-in [:edge-map] #(mesh/put-in-edge-map-if-empty % border-edge neighbor))))))
+              (update-in [:edge-map] #(mesh/edge-map-put-if-empty % border-edge neighbor))))))
       {:encroached nil :to-expand [] :borders borders :edge-map edge-map}
       (remove #(.contains visited %) neighbors))))
 
@@ -93,7 +92,7 @@
   (loop [expand-queue [center-element]
          visited      #{}
          borders      #{}
-         edge-map     {}]
+         edge-map     {}] ; edge-map of the region
     (if-let [current (first expand-queue)]
       (if (contains? visited current)
         (recur (rest expand-queue) visited borders edge-map)
